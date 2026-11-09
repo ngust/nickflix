@@ -142,3 +142,93 @@ body.playing #av{display:block}
 #osd-hint{font-size:24px;color:#bbb}
 
 #toast{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);z-index:90;font-size:28px;background:rgba(20,20,26,.95);border:2px solid #444;border-radius:12px;padding:16px 30px}
+
+/* ================= v2 additions ================= */
+body.playing #who,body.playing #pedit,body.playing #profile{visibility:hidden}
+.ptab{display:flex;align-items:center;gap:12px;padding:6px 20px 6px 8px;margin-left:auto}
+.ptab img{width:52px;height:52px;border-radius:10px}
+#nav-name{font-size:26px}
+#tabs{gap:10px}
+.tab{font-size:30px;padding:10px 22px}
+#hero{height:760px}
+.hero-body{top:230px}
+#modebar{position:absolute;left:72px;top:132px;z-index:5;display:flex;align-items:center;gap:0;background:rgba(20,20,26,.85);border-radius:40px;padding:6px}
+.mode{font-size:26px;font-weight:700;padding:10px 30px;border-radius:34px;color:#bbb;border:4px solid transparent}
+.mode.sel{background:#fff;color:#000}
+.mode.f{border-color:#FFD400}
+.mode-hint{font-size:22px;color:#aaa;padding:0 22px 0 18px}
+.rtitle .badge.tag{background:#3a3a46;color:#ddd}
+.csub{position:absolute;left:8px;top:8px;font-size:18px;font-weight:800;background:rgba(0,0,0,.8);color:#fff;border-radius:5px;padding:2px 8px}
+.pbar{position:absolute;left:10px;right:10px;bottom:10px;height:8px;border-radius:4px;background:rgba(255,255,255,.3);overflow:hidden}
+.pbar div{height:100%;background:#e50914}
+.ep{position:relative}
+.ep-pbar{left:22px;right:22px;bottom:4px;height:6px}
+.card.inlist .art::after{content:'\2713';position:absolute;right:8px;top:8px;width:34px;height:34px;border-radius:17px;background:#2ecc71;color:#000;font-weight:900;font-size:22px;display:flex;align-items:center;justify-content:center}
+.rate{display:inline-block;font-weight:800;color:#fff;background:rgba(255,255,255,.12);border-radius:8px;padding:2px 12px 2px 4px;margin-right:6px}
+.rate .rb{display:inline-block;background:#01b4e4;color:#04263a;font-size:20px;font-weight:900;border-radius:5px;padding:1px 8px;margin-right:6px;vertical-align:2px}
+/* overlays */
+#who,#pedit,#profile{position:fixed;inset:0;z-index:70;background:radial-gradient(ellipse at 50% 40%,#22060b 0%,#0b0b0f 65%);overflow:hidden}
+#pedit{z-index:72}
+#who-inner{position:absolute;left:0;top:0;width:1920px;height:1080px;display:flex;flex-direction:column;align-items:center;padding-top:110px}
+.who-logo{height:80px;margin-bottom:60px}
+.who-h{font-size:64px;font-weight:700;margin-bottom:60px}
+.who-line{display:flex;gap:44px;justify-content:center}
+.who-p{width:230px;display:flex;flex-direction:column;align-items:center}
+.who-p img,.who-plus{width:210px;height:210px;border-radius:16px;border:7px solid transparent;display:block}
+.who-plus{display:flex;align-items:center;justify-content:center;font-size:130px;color:#aaa;background:#1d1d24}
+.who-p.f img,.who-p.f .who-plus{border-color:#FFD400;transform:scale(1.06)}
+.who-n{margin-top:18px;font-size:32px;color:#bbb;text-align:center}
+.who-p.f .who-n{color:#FFD400;font-weight:700}
+.who-p{position:relative}
+.who-edit{position:absolute;top:70px;left:0;right:0;text-align:center;font-size:70px;color:#fff;text-shadow:0 0 12px #000}
+.who-p.manage img{filter:brightness(.55)}
+.who-line2{margin-top:80px}
+.btn.wb{background:transparent;border:5px solid #777;color:#bbb;font-size:28px;letter-spacing:2px}
+.btn.wb.f{border-color:#FFD400;color:#fff}
+#pedit-inner{position:absolute;left:0;top:0;width:1920px;padding:70px 120px;transition:transform .2s ease-out}
+.pe-h{font-size:54px;font-weight:800;margin-bottom:30px}
+.pe-top{display:flex;align-items:center;gap:40px;margin-bottom:34px}
+.pe-big{width:150px;height:150px;border-radius:14px}
+.pe-name{font-size:52px;font-weight:700;border-bottom:4px solid #555;min-width:700px;padding:8px 6px;min-height:84px}
+.pe-name .ph{display:inline;font-size:40px;color:#777;font-weight:400;width:auto;height:auto}
+.pe-cols{display:flex;gap:90px}
+.pe-kb .krow{margin-bottom:12px}
+.pe-arow{display:flex;gap:16px;margin-bottom:14px}
+.pe-av{width:118px;height:118px;border-radius:12px;border:6px solid transparent;overflow:hidden}
+.pe-av img{width:100%;height:100%}
+.pe-av.sel{border-color:#fff}
+.pe-av.f{border-color:#FFD400;transform:scale(1.08)}
+.pe-btns{display:flex;gap:24px;margin-top:30px}
+#profile-inner{position:absolute;left:0;top:0;width:1920px;padding:90px 120px;transition:transform .2s ease-out}
+.pp-hd{display:flex;align-items:center;gap:36px;margin-bottom:30px}
+.pp-hd img{width:150px;height:150px;border-radius:14px}
+.pp-name{font-size:64px;font-weight:800}
+.pp-tiles{display:flex;gap:24px;margin:36px 0 10px}
+.pp-tile{flex:1;background:#1c1c24;border-radius:14px;padding:22px 24px}
+.pp-v{font-size:56px;font-weight:800;color:#FFD400}
+.pp-l{font-size:24px;color:#aaa}
+.pp-cols{display:flex;gap:50px}
+.pp-col{flex:1}
+.pp-bar{display:flex;align-items:center;gap:14px;margin:12px 0;font-size:24px}
+.pp-bl{width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp-bt{flex:1;height:16px;background:#2a2a33;border-radius:8px;overflow:hidden}
+.pp-bt div{height:100%;background:linear-gradient(90deg,#e50914,#ffb02e)}
+.pp-bv{width:90px;color:#aaa;text-align:right}
+.pp-li{font-size:24px;color:#ccc;margin:10px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* settings v2 */
+.s-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.s-logo{height:64px}
+.s-who{display:flex;align-items:center;gap:14px;font-size:28px;color:#ccc}
+.s-who img{width:56px;height:56px;border-radius:10px}
+.s-big{width:1100px;padding:22px 30px;border-radius:14px;background:#1c1c24;border:5px solid transparent}
+.s-big-t{font-size:36px;font-weight:700}
+.s-big-d{font-size:24px;color:#999;margin-top:6px}
+.s-big.f{border-color:#FFD400;background:#2a2a34}
+.s-sub{max-width:1600px;line-height:1.4}
+.chip.part .box{background:#e6a817;border-color:#e6a817}
+.chip.sub{width:400px;background:#17171d}
+.chip.small{font-size:22px}
+.chip.wide{width:1100px}
+.chip.act.on{background:#2b4a36}
+.chip.region{width:760px}
+#osd-hint{white-space:pre}

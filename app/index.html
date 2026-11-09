@@ -23,14 +23,17 @@
       <div class="tab" data-view="live">TV</div>
       <div class="tab" data-view="movies">Movies</div>
       <div class="tab" data-view="series">Shows</div>
+      <div class="tab" data-view="mylist">My List</div>
       <div class="tab" data-view="search">&#9906; Search</div>
       <div class="tab" data-view="settings">&#9881; Settings</div>
+      <div class="tab ptab" data-view="profile"><img id="nav-av" alt=""><span id="nav-name"></span></div>
     </div>
     <div id="clock"></div>
   </header>
 
   <div id="view">
     <div id="scroller">
+      <div id="modebar" class="hidden"></div>
       <section id="hero" class="hidden">
         <img id="hero-bg" alt="">
         <div class="hero-shade"></div>
@@ -42,6 +45,7 @@
           <div class="hero-btns">
             <div class="btn primary" id="hero-play">&#9654;&nbsp; Play</div>
             <div class="btn" id="hero-info">&#9432;&nbsp; More Info</div>
+            <div class="btn" id="hero-list">+ My List</div>
           </div>
         </div>
       </section>
@@ -79,7 +83,16 @@
   </div>
 </section>
 
+<section id="who" class="hidden"><div id="who-inner"></div></section>
+<section id="pedit" class="hidden"><div id="pedit-inner"></div></section>
+<section id="profile" class="hidden"><div id="profile-inner"></div></section>
+
 <div id="toast" class="hidden"></div>
-<script src="js/main.js"></script>
+<script src="js/core.js"></script>
+<script src="js/profiles.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/curated.js"></script>
+<script src="js/app.js"></script>
+<script src="js/screens.js"></script>
 </body>
 </html>
