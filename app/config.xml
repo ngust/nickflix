@@ -11,6 +11,10 @@
     <access origin="http://cdn3.example.net" subdomains="true"/>
     <access origin="http://cdn4.example.net" subdomains="true"/>
     <access origin="http://cdn5.example.net" subdomains="true"/>
+    <access origin="https://api-web.nhle.com" subdomains="true"/>
+    <access origin="https://assets.nhle.com" subdomains="true"/>
+    <access origin="https://site.api.espn.com" subdomains="true"/>
+    <access origin="https://a.espncdn.com" subdomains="true"/>
     <tizen:privilege name="http://tizen.org/privilege/internet"/>
     <tizen:setting screen-orientation="landscape" context-menu="enable" background-support="disable" encryption="disable" install-location="auto" hwkey-event="enable"/>
 </widget>

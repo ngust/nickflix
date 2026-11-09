@@ -171,7 +171,7 @@ function procCats(type, arr) {
 function yearOf(s) { var m = String(s || "").match(/\((\d{4})\)/) || String(s || "").match(/\b(19\d\d|20\d\d)\b/); return m ? m[1] : ""; }
 function stripTitle(n) { return n.replace(/\s*\(\s*-?\d{4}\s*\)\s*/, " ").replace(/\s+/g, " ").trim(); }
 function slim(type, it, catId) {
-  if (type === "live") return { t: type, id: it.stream_id, n: cleanName(it.name), ic: it.stream_icon || "", ad: it.is_adult == 1, c: catId };
+  if (type === "live") { var o = { t: type, id: it.stream_id, n: cleanName(it.name), ic: it.stream_icon || "", c: catId }; if (it.is_adult == 1) o.ad = true; if (it.epg_channel_id) o.e = 1; return o; }
   if (type === "movies") return { t: type, id: it.stream_id, n: stripTitle(cleanName(it.name)), y: yearOf(it.name), ic: it.stream_icon || "",
     ext: it.container_extension || "mp4", r: parseFloat(it.rating) || 0, a: +it.added || 0, tm: it.tmdb ? String(it.tmdb) : "", ad: it.is_adult == 1, c: catId };
   var bd = Array.isArray(it.backdrop_path) ? it.backdrop_path[0] : (typeof it.backdrop_path === "string" ? it.backdrop_path : "");

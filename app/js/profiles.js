@@ -40,6 +40,7 @@ function savePD(now) {
   clearTimeout(saveT);
   var f = function () {
     if (PD.hist.length > 80) PD.hist.length = 80;
+    if (PD.learn && Math.random() < 0.1) learnPrune();
     var ok = lsSet("nf_p_" + PF.id, PD);
     if (!ok) { PD.hist.length = Math.min(PD.hist.length, 30); lsSet("nf_p_" + PF.id, PD); }
   };
@@ -125,6 +126,7 @@ function clearPos(it) { delete PD.pos[itemKey(it)]; savePD(); }
 function getPos(it) { return PD.pos[itemKey(it)] || null; }
 function addWatchTime(it, sec) {
   var s = PD.stats; s.sec += sec;
+  try { learnWatch(it, sec); } catch (e) {}
   s.types[it.t] = (s.types[it.t] || 0) + sec;
   itemGenres(it).forEach(function (g) { s.gen[g] = (s.gen[g] || 0) + sec; });
   if (it.t === "live") { var k = String(it.id); s.ch[k] = (s.ch[k] || 0) + sec; s.chn[k] = it.n; }
@@ -137,6 +139,6 @@ function affinity() {
   var a = {}, now = Date.now();
   PD.hist.forEach(function (h, i) { var w = Math.max(0.2, 1 - i / 40); itemGenres(h.it).forEach(function (g) { a[g] = (a[g] || 0) + 2 * w; }); });
   PD.list.forEach(function (h) { itemGenres(h.it).forEach(function (g) { a[g] = (a[g] || 0) + 1.5; }); });
-  var s = PD.stats.gen; for (var g in s) a[g] = (a[g] || 0) + Math.min(5, s[g] / 1800);
+  learnTop("gen", 30).forEach(function (x) { a[x[0]] = (a[x[0]] || 0) + Math.min(6, x[1] / 20); });
   return a;
 }

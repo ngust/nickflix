@@ -8,10 +8,10 @@ function initTabs() {
 }
 var ROWTOP_HERO = 760, ROWTOP_PLAIN = 130;
 function kindOf(spec, view) { return spec.kind || (view === "live" ? "l" : view === "mylist" ? "p" : T[view].card); }
-var KIND = { p: { pitch: 264, rowH: 505, vis: 7 }, l: { pitch: 354, rowH: 372, vis: 5 } };
+var KIND = { p: { pitch: 264, rowH: 505, vis: 7 }, l: { pitch: 354, rowH: 400, vis: 5 }, t: { pitch: 356, rowH: 256, vis: 5 }, g: { pitch: 444, rowH: 330, vis: 4 }, e: { pitch: 884, rowH: 430, vis: 2 } };
 function modeOf(view) { return PD.st.mode[view] === "all" ? "all" : "curated"; }
 function specsFor(view) {
-  if (view === "live") return allRows("live");
+  if (view === "live") return V.page ? pageSpecs(V.page) : hubSpecs();
   if (view === "mylist") return myListRows();
   return modeOf(view) === "all" ? allRows(view) : curatedRows(view);
 }
@@ -43,10 +43,17 @@ function buildView(view) {
   var top = V.heroOn ? ROWTOP_HERO : ROWTOP_PLAIN;
   rowsEl.style.paddingTop = (V.heroOn ? 0 : 130) + "px";
   if (V.heroOn) rowsEl.style.paddingTop = "0px";
+  if (view === "live") {
+    var hd = ce("div", "phead");
+    if (V.page) { hd.appendChild(ce("span", "ph-crumb", "TV  \u203A  ")); hd.appendChild(ce("span", "ph-title", pageTitle())); hd.appendChild(ce("span", "ph-hint", "BACK returns to the TV hub")); }
+    else { hd.appendChild(ce("span", "ph-title", "Live TV")); hd.appendChild(ce("span", "ph-hint", "Pick a category \u2013 the tiles you use most move to the front")); }
+    rowsEl.appendChild(hd);
+  }
   var specs = specsFor(view);
   specs.forEach(function (sp) {
     var kind = kindOf(sp, view), K = KIND[kind];
-    var el = ce("div", "row"); el.style.height = K.rowH + "px";
+    if (kind === "t" && !sp.title) K = { pitch: K.pitch, rowH: 222, vis: K.vis };
+    var el = ce("div", "row k" + kind + (sp.title ? "" : " notitle")); el.style.height = K.rowH + "px";
     var tt = ce("div", "rtitle", sp.title);
     if (sp.badge) tt.appendChild(ce("span", "badge", sp.badge));
     if (sp.tag) tt.appendChild(ce("span", "badge tag", sp.tag));
@@ -74,7 +81,7 @@ function showEmpty() {
   e.classList.remove("hidden");
 }
 function layoutRows() {
-  var y = V.heroOn ? ROWTOP_HERO : ROWTOP_PLAIN;
+  var y = V.heroOn ? ROWTOP_HERO : ROWTOP_PLAIN + (V.view === "live" ? 84 : 0);
   for (var i = 0; i < V.rows.length; i++) { V.rows[i].top = y; y += V.rows[i].K.rowH; }
 }
 function renderModebar() {
@@ -206,17 +213,27 @@ function removeRow(row) {
 function clearRow(row) { row.track.textContent = ""; row.rendered = {}; row.lo = 0; row.hi = -1; }
 function renderWindow(row) {
   var K = row.K, n = row.items.length;
+  if (row.kind === "t" || row.kind === "e") row.off = Math.min(row.off, Math.max(0, n - K.vis));
   var lo = Math.max(0, row.off - 3), hi = Math.min(n - 1, row.off + K.vis + 5), k;
   for (k in row.rendered) { k = +k; if (k < lo || k > hi) { var e = row.rendered[k]; if (e.parentNode) e.parentNode.removeChild(e); delete row.rendered[k]; } }
   var frag = document.createDocumentFragment();
-  for (k = lo; k <= hi; k++) if (!row.rendered[k]) { var c = cardEl(row.items[k], row.kind, k, K.pitch); if (inList(row.items[k])) c.classList.add("inlist"); row.rendered[k] = c; frag.appendChild(c); }
+  for (k = lo; k <= hi; k++) if (!row.rendered[k]) { var c = anyCard(row, row.items[k], k); row.rendered[k] = c; frag.appendChild(c); }
   row.track.appendChild(frag);
   row.lo = lo; row.hi = hi;
   row.track.style.transform = "translateX(" + (-row.off * K.pitch) + "px)";
 }
+function anyCard(row, it, k) {
+  var K = row.K, c;
+  if (it.t === "tile") c = tileCard(it); else if (row.kind === "e" && it.t !== "live") c = bigCard(it); else if (it.t === "game") c = gameCard(it); else if (it.t === "event" || it.t === "action") c = bigCard(it);
+  if (c) { c.classList.add("card"); c.style.left = (k * K.pitch) + "px"; return c; }
+  c = cardEl(it, row.kind, k, K.pitch);
+  if (inList(it)) c.classList.add("inlist");
+  if (row.spec.epg && it.t === "live") epgInto(c, it);
+  return c;
+}
 function updateScroll() {
   var ty = 0;
-  if (V.zone === "rows" && V.rows.length) { var row = V.rows[V.r]; ty = Math.min(0, -(row.top - 120)); }
+  if (V.zone === "rows" && V.rows.length) { var row = V.rows[V.r]; ty = Math.min(0, -(row.top - 120 - (V.view === "live" ? 84 : 0))); }
   $("scroller").style.transform = "translateY(" + ty + "px)";
 }
 function focusRowItem() {
@@ -294,7 +311,7 @@ function mainKey(k) {
     else if (k === "right") { if (row) moveCol(row, 1); }
     else if (k === "up") { if (!changeRow(-1)) upFromRows(); }
     else if (k === "down") changeRow(1);
-    else if (k === "back") { V.zone = "nav"; applyFocus(); }
+    else if (k === "back") { if (V.view === "live" && V.page) closeLivePage(); else { V.zone = "nav"; applyFocus(); } }
     else if (k === "enter" && row && row.items && row.items[row.col]) activate(row.items[row.col], row.items, row.col);
   }
 }
@@ -321,7 +338,8 @@ function selectTab(v, fromOk) {
   if (v === "settings") { openSettings(); return; }
   if (v === "profile") { openProfilePage(); return; }
   if (v === "search") { showSearch(); if (fromOk) { V.zone = "search"; S.pane = "kbd"; searchFocus(); } return; }
-  if (v !== V.view) buildView(v);
+  if (v === "live" && (V.page || v !== V.view)) { V.page = null; V.pageStack = []; buildView(v); }
+  else if (v !== V.view) buildView(v);
   if (fromOk) {
     // OK on a tab jumps straight into the first row of content
     if (V.heroOn && V.hero) { V.zone = "hero"; V.heroIdx = 0; applyFocus(); }
@@ -329,7 +347,10 @@ function selectTab(v, fromOk) {
   }
 }
 function activate(item, list, idx) {
-  if (item.t === "live") playItem(item, list, idx);
+  if (item.t === "tile") { openLivePage(item.id); return; }
+  if (item.t === "game" || item.t === "event") { openPicker(item); return; }
+  if (item.t === "action") { item.act(); return; }
+  if (item.t === "live") { P.game = null; playItem(item, list, idx); }
   else if (item._resume) resumeItem(item);
   else openDetails(item);
 }
@@ -462,6 +483,7 @@ function playItem(item, list, idx, resumeMs) {
     P.list = list || null; P.idx = idx || 0;
     addHistory(item);
     startPlayback(item.n, liveURLs(item), false, 0);
+    osdEpg(item);
   } else {
     P.list = null;
     addHistory(item);
@@ -487,6 +509,15 @@ function resumeItem(it) {
     addHistory(it, { s: ps.ep.s, e: ps.ep.e });
     startPlayback(it.n + "  \u2022  S" + ps.ep.s + ":E" + ps.ep.e + " " + (ps.ep.title || ""), [base() + "/series/" + cred() + "/" + ps.ep.id + "." + (ps.ep.ext || "mp4")], true, ps.t);
   } else openDetails(it);
+}
+function osdEpg(it) {
+  var e = $("osd-epg"); e.textContent = "";
+  if (!it || it.t !== "live") return;
+  getEpg(it.id).then(function (v) {
+    if (!P.open || P.item !== it || !v.length) return;
+    var now = Date.now(), cur = v[0].s <= now ? v[0] : null, nx = cur ? v[1] : v[0];
+    e.textContent = (cur ? "Now: " + cur.t + " (until " + fmtClock(cur.e) + ")" : "") + (nx ? (cur ? "     " : "") + "Next " + fmtClock(nx.s) + ": " + nx.t : "");
+  });
 }
 function osd(status, hint, stay) {
   if (status != null) $("osd-status").textContent = status;
@@ -628,7 +659,7 @@ function zap(d) {
   addHistory(it);
   $("osd-title").textContent = it.n; P.title = it.n;
   P.urls = liveURLs(it); P.ui = 0;
-  playURL(P.urls[0]);
+  playURL(P.urls[0]); osdEpg(it);
   var row = V.rows[V.r]; if (row && row.items === P.list) { row.col = n; row.off = Math.max(0, Math.min(n - 1, row.items.length - row.K.vis + 1)); }
 }
 function playerKey(k) {

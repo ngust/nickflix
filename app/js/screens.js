@@ -47,7 +47,7 @@ function renderSettings(keepKey) {
   var logo = document.createElement("img"); logo.src = "img/logo.png"; logo.className = "s-logo"; hdr.appendChild(logo);
   var who = ce("div", "s-who"); var av = document.createElement("img"); av.src = avatarSrc(PF.av); who.appendChild(av); who.appendChild(ce("span", "", PF.name)); hdr.appendChild(who);
   inner.appendChild(hdr);
-  ({ home: stHome, live: stLive, vod: stVod, account: stAccount })[ST.page](inner, ln);
+  ({ home: stHome, live: stLive, vod: stVod, account: stAccount, sports: stSports })[ST.page](inner, ln);
   if (keepKey && lnFind(ln, keepKey)) {} else if (!keepKey) { ln.li = 0; ln.ci = 0; }
   lnFocus(ln);
 }
@@ -62,10 +62,11 @@ function stHome(inner, ln) {
   var lc = 0, lt = 0; cats.live.forEach(function (c) { lt++; if (catVisibleLive(c)) lc++; });
   navBtn(inner, ln, "\uD83D\uDCFA  Live TV filters", "Choose regions, countries and channel types for the TV tab. Showing " + lc + " of " + lt + " channel groups.", function () { stPage("live"); });
   navBtn(inner, ln, "\uD83C\uDFAC  Movies & Shows filters", "Languages, genres and streaming sources for Movies, Shows and Search.", function () { stPage("vod"); });
+  navBtn(inner, ln, "\uD83C\uDFD2  Sports, events & time", "Favourite NHL team: " + (PD.st.nhlTeam ? teamName(PD.st.nhlTeam) : "none") + "  \u00b7  Game times shown in: " + tzLabel(), function () { stPage("sports"); });
   navBtn(inner, ln, "\uD83D\uDC64  Profiles", "Switch, add, rename or delete profiles and change avatars.", function () { closeSettings(); openWho(true); });
   navBtn(inner, ln, "\uD83D\uDCCA  " + PF.name + "'s viewing stats", "Hours watched, top genres, top channels, recent activity.", function () { closeSettings(); openProfilePage(); });
   navBtn(inner, ln, "\uD83D\uDD11  Account", "Your IPTV provider login (shared by all profiles).", function () { stPage("account"); });
-  inner.appendChild(ce("div", "s-note", "NickFlix 2.1"));
+  inner.appendChild(ce("div", "s-note", "NickFlix 3.0"));
 }
 function liveCodes() {
   var cnt = {}; cats.live.forEach(function (c) { cnt[c.code] = (cnt[c.code] || 0) + 1; }); return cnt;
@@ -137,6 +138,23 @@ function stLive(inner, ln) {
       });
     }
   });
+}
+function stSports(inner, ln) {
+  inner.appendChild(ce("div", "s-h1", "Sports, events & time"));
+  inner.appendChild(ce("div", "s-sub", "Game schedules come from the free public NHL and ESPN feeds; times are converted from UTC to the zone below. Major events (UFC numbered cards, Super Bowl, Stanley Cup Final, NBA Finals, World Series, F1, World Cup) appear first on the TV hub."));
+  var l1 = ce("div", "s-line"), b1 = chip("Favourite NHL team: " + (PD.st.nhlTeam ? teamName(PD.st.nhlTeam) : "none") + "  \u2013 change", "", !!PD.st.nhlTeam, function () { openTeamPicker(); }, "act wide");
+  l1.appendChild(b1); inner.appendChild(l1); lnAdd(ln, l1, [b1]);
+  inner.appendChild(ce("div", "s-sec", "Show times in"));
+  inner.appendChild(ce("div", "s-note", "Default is UTC\u22127 all year (Creston / Mountain Standard). Shared by all profiles. Now: " + fmtClock(Date.now())));
+  grid(inner, ln, TZ_OPTS, 2, function (o) {
+    var cur = account.tz == null ? "-420" : String(account.tz);
+    var c = chip(o[1], "", cur === o[0], null); c._key = "tz:" + o[0];
+    c._act = function () { account.tz = o[0]; saveAccount(); XC = {}; tick(); ST.dirty = true; renderSettings(c._key); };
+    return c;
+  });
+  inner.appendChild(ce("div", "s-sec", "Learning"));
+  var l2 = ce("div", "s-line"), b2 = chip("Reset what NickFlix learned for " + PF.name, "", false, function () { if (b2._armed) { PD.learn = {}; savePD(true); toast("Learning reset for " + PF.name); ST.dirty = true; b2._armed = false; } else { b2._armed = true; toast("Press OK again to reset"); } }, "act");
+  l2.appendChild(b2); inner.appendChild(l2); lnAdd(ln, l2, [b2]);
 }
 function langList() {
   var cnt = {};
@@ -332,8 +350,9 @@ function renderProfilePage() {
   var tiles = ce("div", "pp-tiles");
   var h = s.sec / 3600;
   function tile(v, l) { var t = ce("div", "pp-tile"); t.appendChild(ce("div", "pp-v", v)); t.appendChild(ce("div", "pp-l", l)); tiles.appendChild(t); }
-  function hm(sec) { return sec >= 3600 ? (sec / 3600).toFixed(1) + " h" : Math.round(sec / 60) + " min"; }
-  tile(h >= 1 ? h.toFixed(1) : String(Math.round(s.sec / 60)), h >= 1 ? "hours watched" : "minutes watched");
+  function hm(sec) { if (!(sec > 0)) return "0 min"; if (sec < 60) return "<1 min"; var m = sec / 60; if (m < 60) return (m < 10 ? m.toFixed(1) : Math.round(m)) + " min"; return (sec / 3600).toFixed(1) + " h"; }
+  var mins = s.sec / 60;
+  tile(h >= 1 ? h.toFixed(1) : (!(s.sec > 0) ? "0" : mins < 1 ? "<1" : mins < 10 ? mins.toFixed(1) : String(Math.round(mins))), h >= 1 ? "hours watched" : "minutes watched");
   tile(String(Object.keys(s.titles).length), "titles watched");
   tile(hm(s.types.movies || 0), "movies"); tile(hm(s.types.series || 0), "shows"); tile(hm(s.types.live || 0), "live TV");
   tile(String(PD.list.length), "in My List");
@@ -351,6 +370,20 @@ function renderProfilePage() {
   if (!PD.hist.length) r2.appendChild(ce("div", "s-note", "Nothing yet."));
   PD.hist.slice(0, 8).forEach(function (h2) { r2.appendChild(ce("div", "pp-li", ({ live: "\uD83D\uDCFA ", movies: "\uD83C\uDFAC ", series: "\uD83C\uDF9E " })[h2.it.t] + h2.it.n + (h2.ep ? " S" + h2.ep.s + ":E" + h2.ep.e : "") + "  \u00b7  " + ago(h2.ts))); });
   cols.appendChild(g); cols.appendChild(c); cols.appendChild(r2); box.appendChild(cols);
+  var lr = ce("div", "pp-learn"); lr.appendChild(ce("div", "s-sec", "What NickFlix has learned about " + PF.name));
+  lr.appendChild(ce("div", "s-note", "Each minute you watch adds weight to its channel, category, league and genre; older viewing slowly fades (half-life 3 weeks). This orders the TV hub tiles, sports leagues, featured channels and Movies/Shows picks."));
+  var bits = [];
+  function tops(kind, label, fmt) { var t = learnTop(kind, 4).filter(function (x) { return x[1] >= 0.2; }); if (t.length) bits.push(label + ": " + t.map(function (x) { return fmt ? fmt(x[0]) : x[0]; }).join(", ")); }
+  tops("tile", "TV categories", function (k) { return TILE_BY[k] ? TILE_BY[k].label : k; });
+  tops("lg", "Sports", function (k) { return LG_BY[k] ? LG_BY[k].name : k; });
+  tops("tm", "Teams", function (k) { return teamName(k); });
+  tops("ch", "Channels", function (k) { return s.chn[k] || k; });
+  tops("gen", "Movie & show genres");
+  var ht = learnHourText(); if (ht) bits.push(ht);
+  if (PD.st.nhlTeam) bits.push("Favourite NHL team: " + teamName(PD.st.nhlTeam));
+  if (!bits.length) bits.push("Nothing yet \u2013 it starts learning as soon as you watch.");
+  bits.forEach(function (b) { lr.appendChild(ce("div", "pp-li", "\u2022 " + b)); });
+  box.appendChild(lr);
   lnFocus(ln);
 }
 PS.key = function (k) { if (k === "back") { ovClose(PS); restoreFocus(); return; } lnKey(PS.ln, k); };
@@ -472,7 +505,7 @@ document.addEventListener("keydown", function (e) {
 
 /* ================= boot ================= */
 var booted = false, pendingStart = false;
-function tick() { var d = new Date(), h = d.getHours(), m = d.getMinutes(); $("clock").textContent = ((h % 12) || 12) + ":" + (m < 10 ? "0" : "") + m + (h < 12 ? " AM" : " PM"); }
+function tick() { $("clock").textContent = fmtClock(Date.now()); }
 function startMain() {
   $("splash").classList.add("hidden");
   stopIndex();
