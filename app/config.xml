@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="http://ngust.org/iptv" version="2.0.0" viewmodes="maximized">
+    <tizen:application id="NgustIbTv1.ibtv" package="NgustIbTv1" required_version="6.0"/>
+    <tizen:profile name="tv-samsung"/>
+    <content src="index.html"/>
+    <name>NickFlix</name>
+    <icon src="img/icon.png"/>
+    <access origin="*" subdomains="true"/>
+    <access origin="http://localhost" subdomains="true"/>
+    <access origin="http://your-provider.example.com" subdomains="true"/>
+    <access origin="http://cdn3.example.net" subdomains="true"/>
+    <access origin="http://cdn4.example.net" subdomains="true"/>
+    <access origin="http://cdn5.example.net" subdomains="true"/>
+    <tizen:privilege name="http://tizen.org/privilege/internet"/>
+    <tizen:setting screen-orientation="landscape" context-menu="enable" background-support="disable" encryption="disable" install-location="auto" hwkey-event="enable"/>
+</widget>

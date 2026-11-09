@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>NickFlix</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="$WEBAPIS/webapis/webapis.js"></script>
+</head>
+<body>
+<object id="av" type="application/avplayer"></object>
+
+<div id="splash">
+  <img class="splash-logo" src="img/logo.png" alt="NickFlix">
+  <div class="splash-msg" id="splash-msg">Loading your library&hellip;</div>
+  <div class="splash-bar"><div></div></div>
+</div>
+
+<div id="app">
+  <header id="nav">
+    <img class="nav-logo" src="img/logo.png" alt="NickFlix">
+    <div id="tabs">
+      <div class="tab" data-view="live">TV</div>
+      <div class="tab" data-view="movies">Movies</div>
+      <div class="tab" data-view="series">Shows</div>
+      <div class="tab" data-view="search">&#9906; Search</div>
+      <div class="tab" data-view="settings">&#9881; Settings</div>
+    </div>
+    <div id="clock"></div>
+  </header>
+
+  <div id="view">
+    <div id="scroller">
+      <section id="hero" class="hidden">
+        <img id="hero-bg" alt="">
+        <div class="hero-shade"></div>
+        <div class="hero-body">
+          <div id="hero-kicker" class="kicker"></div>
+          <div id="hero-title"></div>
+          <div id="hero-meta" class="meta"></div>
+          <div id="hero-plot"></div>
+          <div class="hero-btns">
+            <div class="btn primary" id="hero-play">&#9654;&nbsp; Play</div>
+            <div class="btn" id="hero-info">&#9432;&nbsp; More Info</div>
+          </div>
+        </div>
+      </section>
+      <div id="rows"></div>
+    </div>
+    <div id="empty" class="hidden"></div>
+  </div>
+
+  <section id="search" class="hidden">
+    <div class="search-left">
+      <div id="search-q" class="search-q"><span class="ph">Type to search&hellip;</span></div>
+      <div id="kbd"></div>
+      <div id="search-status" class="search-status"></div>
+    </div>
+    <div id="search-results" class="search-right"></div>
+  </section>
+</div>
+
+<section id="settings" class="hidden">
+  <div id="settings-inner"></div>
+</section>
+
+<section id="details" class="hidden">
+  <img id="d-bg" alt="">
+  <div class="d-shade"></div>
+  <div id="d-body"></div>
+</section>
+
+<section id="player" class="hidden">
+  <video id="video" playsinline></video>
+  <div id="osd">
+    <div id="osd-title"></div>
+    <div id="osd-status"></div>
+    <div id="osd-hint"></div>
+  </div>
+</section>
+
+<div id="toast" class="hidden"></div>
+<script src="js/main.js"></script>
+</body>
+</html>

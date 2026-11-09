@@ -1,0 +1,23 @@
+# secrets / personal data
+private/
+app/js/config.js
+*.p12
+*.pfx
+*.pem
+*.key
+profiles.xml
+author-signature.xml
+signature1.xml
+.manifest.tmp
+tests/fixtures/*
+!tests/fixtures/README.md
+# build output
+dist/
+*.wgt
+nickflix*.zip
+# misc
+__pycache__/
+*.pyc
+shots/
+.DS_Store
+Thumbs.db
