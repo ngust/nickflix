@@ -85,6 +85,11 @@ function tvcGroupInfo(c, members) {
   c._tvc = { slot: slot / n > 0.4, feed: n >= 6 && top / n >= 0.6, team: TVC_TEAM_GROUP.test(c.up) };
   return c._tvc;
 }
+var TVC_EVT_OK = {
+  UK: function (u) { return /\bSKY\b|\bTNT\b|PREMIER LEAGUE|\bEFL\b|SPFL|SCOTTISH|^CHAMP\b|SUPER LEAGUE|BOX OFFICE|\bPDC\b|DARTS|DAZN (UK|PPV)|\bBBC\b|\bITV|\bLFC|MUTV|\bUK\b/.test(u) && !/\bUEFA\b|D\+ UK|NCAA/.test(u); },
+  US: function (u) { return !/SERIE A|ENGLISH FA|BARCLAYS|LA ?LIGA|BUNDESLIGA|LIGUE 1|PREMIER LEAGUE|\bEPL\b|\bUEFA\b|EREDIVISIE|SPFL/.test(u); },
+  CA: function () { return true; }
+};
 /* classify one channel; returns null when it does not belong to the country page */
 function tvcClassify(ch, c, gi) {
   var code = c.code, raw = String(ch.n || "").toUpperCase();
@@ -97,11 +102,13 @@ function tvcClassify(ch, c, gi) {
   if (lt === "Local channels") { if (!br || br.sub !== "News") { o.sub = "Local"; o.local = true; o.key = cl.replace(/[^A-Z0-9]/g, ""); return o; } }
   if (code === "US" && (!br || br.sub !== "News") && /^(ABC|CBS|NBC|FOX|PBS|CW|MYNETWORK ?TV|MY ?TV)\b/.test(base) && (/\b[KW][A-Z]{2,3}(-[A-Z0-9]+)?\b/.test(cl) || /^\S+ \d+\b/.test(base) || /^(ABC|CBS|NBC|FOX|CW)$/.test(base))) { o.sub = "Local"; o.local = true; o.key = cl.replace(/[^A-Z0-9]/g, ""); return o; }
   if (code === "UK" && TVC_UK_REGIONAL.test(base) && !br) { o.sub = "Local"; o.key = base; return o; }
-  if ((gi.feed && TVC_VFEED.test(cl)) || TVC_VFEED_ALWAYS.test(cl)) { o.sub = "24/7"; o.brand = false; o.rank = 50; o.key = base; return o; }
-  var isSlot = lt === "PPV & Events" || TVC_SLOT.test(cl) || TVC_SLOT.test(raw.trim()) || (gi.slot && (!br || br.rank >= 6));
+  if ((gi.feed && TVC_VFEED.test(cl) && !br) || TVC_VFEED_ALWAYS.test(cl)) { o.sub = "24/7"; o.brand = false; o.rank = 50; o.key = base; return o; }
+  var isSlot = TVC_SLOT.test(cl) || TVC_SLOT.test(raw.trim()) || ((lt === "PPV & Events" || gi.slot) && (!br || /\|/.test(raw)));
+  if (isSlot && !TVC_EVT_OK[code](raw)) return null;   // event slots must be this country's own events
   if (isSlot) { o.sub = "PPV & Events"; o.slot = true; o.brand = false; o.empty = /NO (SCHEDULED )?EVENT|^[^A-Z]*$|[:|]\s*$|^\s*:|\bINFO\b/.test(cl) || cl.length < 4; o.key = String(ch.id); return o; }
   if (br) { o.sub = br.sub; o.key = tvcKey(base); if (gi.team && br.sub === "Sports") o.rank = Math.min(o.rank, 20); return o; }
   if (gi.team) { o.sub = "Sports"; o.team = true; o.key = base; o.rank = 30; return o; }
+  if (code === "UK" && /^(BBC|ITV|S4C|STV|UTV|SKY|CHANNEL [45]|CBBC|CBEEBIES)\b/.test(base)) { o.sub = /CBBC|CBEEBIES/.test(base) ? "Kids" : nameSub(base) || (/NEWS/.test(base) ? "News" : /SPORT/.test(base) ? "Sports" : "Entertainment"); o.key = tvcKey(base); return o; }
   if (lt === "24/7 channels" || gi.feed || /^24\/7/.test(cl)) { o.sub = "24/7"; o.key = base; return o; }
   var n = nameSub(base);
   if (n) { o.sub = n; o.key = tvcKey(base); return o; }
@@ -174,21 +181,37 @@ function tvcNetList(code, net) {
   });
   return tvcDedupe(l);
 }
+var TVC_FLAG = { UK: "\uD83C\uDDEC\uD83C\uDDE7 ", US: "\uD83C\uDDFA\uD83C\uDDF8 " };
+var TVC_SUBLBL = { Documentary: "documentary & factual", Lifestyle: "lifestyle & food", Local: "local & regional", "24/7": "24/7 non-stop", "PPV & Events": "live event channels" };
+function tvcSubLbl(sub) { return TVC_SUBLBL[sub] || sub.toLowerCase(); }
+/* v4.2: country page = only that country's channels, one row per category (no generic genre tiles) */
 function tvcCountrySpecs(code) {
   if (!CH.all) return loadingSpec("c:" + code, TVC_ADJ[code] + " channels");
-  var tiles = [], nets = [], mx = learnMax("sub") || 1;
+  var adj = TVC_ADJ[code], fl = TVC_FLAG[code] || "", rows = [], mx = learnMax("sub") || 1, cats = [];
+  var pop = tvcSort(tvcDedupe(tvcVisible(code).filter(function (ch) { var o = tvcOf(ch); return o.brand && !o.slot && !o.local; }))).slice(0, 30);
+  if (pop.length) rows.push({ title: fl + "Popular " + adj + " channels", kind: "l", epg: true, local: true, load: function () { return Promise.resolve(pop); } });
   SUBS.forEach(function (s, i) {
-    var n = tvcSubList(code, s[0]).length; if (!n) return;
-    var t = subTile(code, s, n); t.score = 20 - i + 15 * learnScore("sub", s[0]) / mx; tiles.push(t);
+    var all = tvcSubList(code, s[0]); if (!all.length) return;
+    if (s[0] === "24/7") return;   // generic looping feeds are not British/American channels
+    var tail = s[0] === "PPV & Events";
+    cats.push({ s: s, all: all, score: (tail ? -100 : 0) + 20 - i + 15 * learnScore("sub", s[0]) / mx });
   });
-  tiles.sort(function (a, b) { return b.score - a.score; });
-  (TVC_NETS[code] || []).forEach(function (net) { var n = tvcNetList(code, net).length; if (n) nets.push(netTile(code, net, n)); });
-  var rows = tileRows(tiles, "Browse " + TVC_ADJ[code] + " TV by category");
-  if (nets.length) rows = rows.concat(tileRows(nets, code === "US" ? "Local stations by network" : "Channels by network"));
-  rows.push({ title: "Popular " + TVC_ADJ[code] + " channels", kind: "l", epg: true, local: true, load: function () {
-    var l = tvcDedupe(tvcVisible(code).filter(function (ch) { var o = tvcOf(ch); return o.brand && !o.slot && !o.local; }));
-    return Promise.resolve(tvcSort(l).slice(0, 30));
-  } });
+  cats.sort(function (a, b) { return b.score - a.score; });
+  cats.forEach(function (c) {
+    var sub = c.s[0], n = c.all.length, lbl = tvcSubLbl(sub), id = "sub:" + code + ":" + sub;
+    XT[id] = { label: adj + " \u203A " + (c.s[2] || sub) };
+    var main = c.all.filter(function (ch) { return !tvcOf(ch).team; });
+    var top = sub === "PPV & Events" || sub === "Local" ? tvcAlpha(c.all).slice(0, 24) : tvcSort(main.length ? main : c.all).slice(0, 24);
+    rows.push({ title: adj + " " + lbl + " \u00B7 " + n + (n === 1 ? " channel" : " channels"), kind: "l", epg: true, local: true, load: function () {
+      var l = top.slice();
+      if (n > l.length || sub === "PPV & Events" || sub === "Local") l.push({ t: "tile", id: id, n: "See all " + n, sub: adj + " " + lbl + " \u203A", col: "#2a3a8c" });
+      return Promise.resolve(l);
+    } });
+  });
+  var nets = [];
+  (TVC_NETS[code] || []).forEach(function (net) { var k = tvcNetList(code, net).length; if (k) { var t = netTile(code, net, k); t.n = net[0]; nets.push(t); } });
+  if (nets.length) rows = rows.concat(tileRows(nets, code === "US" ? adj + " local stations by network" : adj + " networks"));
+  if (!rows.length) rows.push({ title: "No " + adj + " channels match your filters", kind: "l", local: true, load: function () { return Promise.resolve([]); } });
   return rows;
 }
 function tvcSubSpecs(code, sub) {
