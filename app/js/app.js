@@ -9,6 +9,7 @@ function initTabs() {
 var ROWTOP_HERO = 760, ROWTOP_PLAIN = 130;
 function kindOf(spec, view) { return spec.kind || (view === "live" ? "l" : view === "mylist" ? "p" : T[view].card); }
 var KIND = { p: { pitch: 264, rowH: 505, vis: 7 }, l: { pitch: 354, rowH: 400, vis: 5 }, t: { pitch: 356, rowH: 256, vis: 5 }, g: { pitch: 444, rowH: 330, vis: 4 }, e: { pitch: 884, rowH: 430, vis: 2 } };
+function modeCur() { if (V.view === "nas" && typeof nasModeCur === "function") return nasModeCur(); return PD.st.mode[V.view] === "all" ? 1 : 0; }
 function modeOf(view) { return PD.st.mode[view] === "all" ? "all" : "curated"; }
 function specsFor(view) {
   if (view === "live") return V.page ? pageSpecs(V.page) : hubSpecs();
@@ -35,7 +36,7 @@ function buildView(view) {
   var rowsEl = $("rows"); rowsEl.textContent = "";
   $("search").classList.add("hidden");
   $("view").classList.remove("hidden");
-  V.heroOn = view === "movies" || view === "series";
+  V.heroOn = view === "movies" || view === "series" || view === "nas";
   V.modeOn = V.heroOn;
   $("hero").classList.toggle("hidden", !V.heroOn);
   $("modebar").classList.toggle("hidden", !V.modeOn);
@@ -114,7 +115,7 @@ function pickHero(row) {
   setHeroMeta(it);
   setHeroBg(it.bd || it.ic);
   $("hero-list").textContent = inList(it) ? "\u2713 My List" : "+ My List";
-  if (it.t === "movies") {
+  if (it.t === "movies" && !it.nas) {
     api("get_vod_info", "vod_id=" + it.id, 15000).then(function (r) {
       if (gen !== V.gen || V.hero !== it) return;
       mergeInfo(it, (r && r.info) || {});
@@ -285,8 +286,8 @@ function mainKey(k) {
   }
   if (V.view === "search") { searchKey(k); return; }
   if (V.zone === "mode") {
-    if (k === "left") { V.modeIdx = 0; applyFocus(); }
-    else if (k === "right") { V.modeIdx = 1; applyFocus(); }
+    if (k === "left") { if (V.modeIdx > 0) V.modeIdx--; applyFocus(); }
+    else if (k === "right") { if (V.modeIdx < (V.modeEls ? V.modeEls.length : 2) - 1) V.modeIdx++; applyFocus(); }
     else if (k === "enter") setMode(V.modeIdx);
     else if (k === "up" || k === "back") { V.zone = "nav"; applyFocus(); }
     else if (k === "down") { if (V.heroOn && V.hero) { V.zone = "hero"; V.heroIdx = 0; } else if (V.rows.length) { V.zone = "rows"; V.r = 0; } applyFocus(); }
@@ -295,7 +296,7 @@ function mainKey(k) {
   if (V.zone === "hero") {
     if (k === "left") { if (V.heroIdx > 0) V.heroIdx--; applyFocus(); }
     else if (k === "right") { if (V.heroIdx < 2) V.heroIdx++; applyFocus(); }
-    else if (k === "up") { V.zone = V.modeOn ? "mode" : "nav"; V.modeIdx = PD.st.mode[V.view] === "all" ? 1 : 0; applyFocus(); }
+    else if (k === "up") { V.zone = V.modeOn ? "mode" : "nav"; V.modeIdx = modeCur(); applyFocus(); }
     else if (k === "back") { V.zone = "nav"; applyFocus(); }
     else if (k === "down") { if (V.rows.length) { V.zone = "rows"; V.r = 0; applyFocus(); } }
     else if (k === "enter" && V.hero) {
@@ -330,7 +331,7 @@ function enterContent() {
   if (v === "settings" || v === "profile") return;
   if (v !== V.view) selectTab(v, false);
   if (V.view === "search") { V.zone = "search"; S.pane = "kbd"; searchFocus(); return; }
-  if (V.modeOn) { V.zone = "mode"; V.modeIdx = PD.st.mode[V.view] === "all" ? 1 : 0; }
+  if (V.modeOn) { V.zone = "mode"; V.modeIdx = modeCur(); }
   else if (V.rows.length) V.zone = "rows";
   applyFocus();
 }

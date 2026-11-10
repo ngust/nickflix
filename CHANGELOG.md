@@ -2,6 +2,11 @@
 
 All dates 2026. NickFlix is a Netflix-style front end for an Xtream-codes IPTV account on Samsung Tizen TVs.
 
+## 4.6
+- **My Media:** browses a Twonky/DLNA NAS library in the same poster-row format: hero, Recently added, genre rows, TV series grouped from SxxEyy files, A–Z, Unmatched, a "Home videos & other files" area; sort by genre / added / A–Z / year / rating.
+- Titles cleaned from file names and matched on the TV with Cinemeta (keyless), cached in localStorage; library re-read on launch and when the tab opens, so new files appear automatically.
+- AVPlay playback with resume, per-profile history and a preferred-version (1080p) picker.
+
 ## 4.5
 - Curated documentary collections on Movies and Shows for profiles with the Documentary favourite; British collections for the British favourite.
 - Sports: "Live now" and "Coming up" rows.
