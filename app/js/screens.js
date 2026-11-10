@@ -28,6 +28,8 @@ var ST = { id: "settings", ln: null, page: "home", stack: [], dirty: false, exp:
 function openSettings() {
   ST.dirty = false; ST.page = "home"; ST.stack = [];
   ovOpen(ST); renderSettings();
+  /* start on "Extra channels" so a stray OK press can never flip the adult / Quebec toggles */
+  if (ST.ln && ST.ln.lines.length > 2) { ST.ln.li = 2; ST.ln.ci = 0; lnFocus(ST.ln); }
 }
 function stPage(p) { ST.stack.push({ page: ST.page, li: ST.ln.li, ci: ST.ln.ci }); ST.page = p; renderSettings(); }
 function stBack() {

@@ -99,13 +99,15 @@ function getEpg(id) {
   var p = new Promise(function (res) { EPG.q.push({ id: id, res: res }); epgPump(); });
   EPG.c[id] = { t: 0, p: p }; return p;
 }
+/* hide guide entries that are only filler (e.g. "Show 607 part 0", "No information", "TBA") */
+var EPG_PLACEHOLDER = /^(show \d+ part \d+|program(me)? ?\d*|no (information|info|programme|program|epg|data|event)( available)?|to be announced|tba|tbc|n\/a|-+|\.+|off ?air|closedown|epg not available)$|^$/i;
 function epgPump() {
   while (EPG.run < 2 && EPG.q.length) {
     var j = EPG.q.shift(); EPG.run++;
     (function (j) {
       api("get_short_epg", "stream_id=" + j.id + "&limit=3", 10000).then(function (d) {
         var L = (d && d.epg_listings) || [], now = Date.now() / 1000, v = [];
-        L.forEach(function (x) { var s = +x.start_timestamp, e = +x.stop_timestamp || +x.end_timestamp; if (e > now) v.push({ t: b64(x.title), s: s * 1000, e: e * 1000 }); });
+        L.forEach(function (x) { var s = +x.start_timestamp, e = +x.stop_timestamp || +x.end_timestamp; if (e > now) { var t = b64(x.title); if (!EPG_PLACEHOLDER.test(String(t).trim())) v.push({ t: t, s: s * 1000, e: e * 1000 }); } });
         v.sort(function (a, b) { return a.s - b.s; });
         return v.slice(0, 2);
       }).catch(function () { return []; }).then(function (v) { EPG.c[j.id] = { t: Date.now(), v: v }; EPG.run--; j.res(v); epgPump(); });
