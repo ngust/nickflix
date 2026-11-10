@@ -22,7 +22,7 @@ function imgOr(src, name, cls) {
 function cardEl(item, cls, i, pitch) {
   var c = ce("div", "card " + cls);
   c.style.left = (i * pitch) + "px";
-  var a = imgOr(item.ic, item.n);
+  var a = item.t === "live" && typeof chanArt === "function" ? chanArt(item) : imgOr(item.ic, item.n);
   if (item.sub) a.appendChild(ce("div", "csub", item.sub));
   if (item.pr > 0) { var b = ce("div", "pbar"); var f = ce("div"); f.style.width = Math.max(4, Math.round(item.pr * 100)) + "%"; b.appendChild(f); a.appendChild(b); }
   c.appendChild(a);

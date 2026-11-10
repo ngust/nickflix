@@ -15,6 +15,7 @@
     <access origin="https://assets.nhle.com" subdomains="true"/>
     <access origin="https://site.api.espn.com" subdomains="true"/>
     <access origin="https://a.espncdn.com" subdomains="true"/>
+    <access origin="https://raw.githubusercontent.com" subdomains="true"/>
     <tizen:privilege name="http://tizen.org/privilege/internet"/>
     <tizen:setting screen-orientation="landscape" context-menu="enable" background-support="disable" encryption="disable" install-location="auto" hwkey-event="enable"/>
 </widget>

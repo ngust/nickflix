@@ -1,4 +1,4 @@
-/* NickFlix v2 - core: helpers, account, provider API, parsing, cache */
+/* NickFlix v4 - core: helpers, account, provider API, parsing, cache */
 "use strict";
 function $(id) { return document.getElementById(id); }
 function ce(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
@@ -62,8 +62,7 @@ var REGIONS = [
   ["East Asia", ["KO", "KR", "JP", "TW", "CN"]],
   ["South Asia", ["AS", "IN", "PK", "SR"]],
   ["Southeast Asia", ["PH", "TH", "VT", "VE", "SN"]],
-  ["Oceania", ["AU", "AUS", "NZ"]],
-  ["Adult (18+)", ["ADULT"]]
+  ["Oceania", ["AU", "AUS", "NZ"]]
 ];
 var CODE_REGION = {};
 REGIONS.forEach(function (r) { r[1].forEach(function (c) { CODE_REGION[c] = r[0]; }); });
@@ -89,6 +88,19 @@ function niceWord(w) {
   if (w !== u) return w;
   return u.charAt(0) + u.slice(1).toLowerCase();
 }
+/* ---------- Quebec / French-Canadian and adult detection ---------- */
+var QC_CAT_RE = /QU[E\u00c9]BEC|\bQC\b|\bVFQ\b/;
+var QC_CH_RE = /QU[E\u00c9]BEC|\bTVA\b|NOOVO|\bRDS\b|\bRDI\b|RADIO[- ]?CANADA|\bICI\b|\bTV5\b|\bUNIS(?: ?TV)?\b|VRAK|\bZ ?T[E\u00c9]L[E\u00c9]\b|CANAL ?D\b|CANAL ?VIE|CANAL ?SAVOIR|S[E\u00c9]RIES ?\+|HISTORIA|\bLCN\b|SUPER ?[E\u00c9]CRAN|ILLICO|\bCASA\b|[E\u00c9]VASION|PRISE 2|ADDIK|MOI ?(?:&|ET) ?CIE|YOOPA|T[E\u00c9]L[E\u00c9]TOON LA|PLAN[E\u00c8]TE ?\+|\bTFO\b|MUSIQUEPLUS|\bARTV\b|EXPLORA|M[E\u00c9]T[E\u00c9]OM[E\u00c9]DIA|CIN[E\u00c9]POP|AMI[- ]T[E\u00c9]L[E\u00c9]|T[E\u00c9]L[E\u00c9]MAGINO|\bMAX TV\b(?=.*\bFR\b)/;
+var QC_PREFIX_RE = /\|\s*CA\s*\|\s*FR\s*\||\bCA[- ]FR\b|\bFR[- ]CA\b/;
+var ADULT_CAT_RE = /^\s*XXX|\+18|18\+|\bADULTS?\b(?! ?SWIM)|\bXXX\b|PORN|HANIME/;
+/* a live channel is "Quebec" when it sits in a Canadian group and is French-language (never TSN shared feeds or game listings) */
+function isQCChannel(name, code) {
+  var u = String(name || "").toUpperCase();
+  if (code !== "CA") return false;
+  if (/\bTSN\b|@| VS\.? | V /.test(u)) return false;
+  return QC_PREFIX_RE.test(u) || QC_CH_RE.test(u);
+}
+function isQCTitle(name) { return /\[(?:QC|VFQ)\]|\((?:QC|VFQ)\)|\bVFQ\b/i.test(String(name || "")); }
 function cleanCat(raw) {
   var s = String(raw || "");
   s = s.replace(/^\s*[|\u2503]?\s*[A-Za-z0-9+\-]{2,7}\s*[|\u2503]\s*/, "").replace(/^XXX\s*\|/i, "");
@@ -163,6 +175,8 @@ function procCats(type, arr) {
     var o = { id: String(c.category_id), type: type, raw: raw, up: up, code: catCode(raw), title: cleanCat(raw), order: i,
       genres: g.length ? g : ["General"], sources: s.length ? s : ["Other"] };
     if (type === "live") o.ltype = liveType(up);
+    if (o.code === "ADULT" || ADULT_CAT_RE.test(up)) { o.adult = true; o.code = "ADULT"; }
+    if (QC_CAT_RE.test(up)) o.qc = true;
     catById[type + ":" + o.id] = o;
     out.push(o);
   });
@@ -171,9 +185,16 @@ function procCats(type, arr) {
 function yearOf(s) { var m = String(s || "").match(/\((\d{4})\)/) || String(s || "").match(/\b(19\d\d|20\d\d)\b/); return m ? m[1] : ""; }
 function stripTitle(n) { return n.replace(/\s*\(\s*-?\d{4}\s*\)\s*/, " ").replace(/\s+/g, " ").trim(); }
 function slim(type, it, catId) {
-  if (type === "live") { var o = { t: type, id: it.stream_id, n: cleanName(it.name), ic: it.stream_icon || "", c: catId }; if (it.is_adult == 1) o.ad = true; if (it.epg_channel_id) o.e = 1; return o; }
+  var cc = catById[type + ":" + catId];
+  if (type === "live") { var o = { t: type, id: it.stream_id, n: cleanName(it.name), ic: it.stream_icon || "", c: catId }; if (it.is_adult == 1 || (cc && cc.adult)) o.ad = true; if (it.epg_channel_id) o.e = 1; if ((cc && cc.qc) || isQCChannel(it.name, cc ? cc.code : "")) o.qc = 1; return o; }
+  var mv = slimV(type, it, catId);
+  if (cc && cc.adult) mv.ad = true;
+  if ((cc && cc.qc) || isQCTitle(it.name)) mv.qc = 1;
+  return mv;
+}
+function slimV(type, it, catId) {
   if (type === "movies") return { t: type, id: it.stream_id, n: stripTitle(cleanName(it.name)), y: yearOf(it.name), ic: it.stream_icon || "",
-    ext: it.container_extension || "mp4", r: parseFloat(it.rating) || 0, a: +it.added || 0, tm: it.tmdb ? String(it.tmdb) : "", ad: it.is_adult == 1, c: catId };
+    ext: it.container_extension || "mp4", r: parseFloat(it.rating) || 0, a: +it.added || 0, tm: it.tmdb ? String(it.tmdb) : "", ad: it.is_adult == 1 || undefined, c: catId };
   var bd = Array.isArray(it.backdrop_path) ? it.backdrop_path[0] : (typeof it.backdrop_path === "string" ? it.backdrop_path : "");
   return { t: type, id: it.series_id, n: stripTitle(cleanName(it.name)), y: String(it.releaseDate || it.release_date || "").slice(0, 4) || yearOf(it.name),
     ic: it.cover || "", plot: it.plot || "", genre: it.genre || "", r: parseFloat(it.rating) || 0, a: +it.last_modified || 0,

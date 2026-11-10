@@ -50,7 +50,7 @@ function loadPool(type, pc) {
     p = Promise.all(pc.map(function (c) { return settle(loadCat(c)); })).then(function (lists) {
       var by = {}, out = [], ok = adultOk();
       lists.forEach(function (l) { l.forEach(function (it) {
-        if (it.ad && !ok) return;
+        if (!itemOK(it)) return;
         var k = normTitle(it), o = by[k];
         if (!o) { by[k] = it; out.push(it); }
         else if (!o.ic && it.ic) { by[k] = it; out[out.indexOf(o)] = it; }
@@ -82,7 +82,7 @@ function curatedRows(type) {
   function dedupe(items, max) {
     var out = [], noPic = [], seen = {}, ok = adultOk();
     for (var i = 0; i < items.length && out.length < max; i++) {
-      var it = items[i]; if (it.ad && !ok) continue;
+      var it = items[i]; if (!itemOK(it)) continue;
       var k = normTitle(it); if (used[k] || seen[k]) continue; seen[k] = 1;
       if (it.ic) out.push(it); else if (noPic.length < max) noPic.push(it);
     }
@@ -165,7 +165,7 @@ function allRows(type) {
   if (type === "live") list = list.slice().sort(function (a, b) { return (liveRank(a) - liveRank(b)) || (a.order - b.order); });
   list.forEach(function (c) {
     rows.push({ count: true, title: c.title, badge: c.code !== "MULTI" ? c.code : "", tag: type === "live" ? c.ltype : "", load: function () {
-      return loadCat(c).then(function (items) { var ok = adultOk(); return ok ? items : items.filter(function (x) { return !x.ad; }); });
+      return loadCat(c).then(function (items) { return items.filter(itemOK); });
     } });
   });
   return rows;

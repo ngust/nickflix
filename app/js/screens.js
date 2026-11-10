@@ -47,7 +47,7 @@ function renderSettings(keepKey) {
   var logo = document.createElement("img"); logo.src = "img/logo.png"; logo.className = "s-logo"; hdr.appendChild(logo);
   var who = ce("div", "s-who"); var av = document.createElement("img"); av.src = avatarSrc(PF.av); who.appendChild(av); who.appendChild(ce("span", "", PF.name)); hdr.appendChild(who);
   inner.appendChild(hdr);
-  ({ home: stHome, live: stLive, vod: stVod, account: stAccount, sports: stSports })[ST.page](inner, ln);
+  ({ home: stHome, live: stLive, vod: stVod, account: stAccount, sports: stSports, extra: stExtra })[ST.page](inner, ln);
   if (keepKey && lnFind(ln, keepKey)) {} else if (!keepKey) { ln.li = 0; ln.ci = 0; }
   lnFocus(ln);
 }
@@ -60,16 +60,27 @@ function stHome(inner, ln) {
   inner.appendChild(ce("div", "s-h1", "Settings"));
   inner.appendChild(ce("div", "s-sub", "Filters are saved per profile (" + PF.name + ") and applied when you press BACK."));
   var lc = 0, lt = 0; cats.live.forEach(function (c) { lt++; if (catVisibleLive(c)) lc++; });
+  // --- content switches (per profile) ---
+  inner.appendChild(ce("div", "s-sec", "Content for " + PF.name));
+  function toggleLine(key, label, desc, get, set) {
+    var l = ce("div", "s-line"), c = chip(label, desc, get(), null, "wide tog"); c._key = key;
+    c._act = function () { set(!get()); setChip(c, get()); ST.dirty = true; savePD(true); toast(label + ": " + (get() ? "ON" : "OFF")); };
+    l.appendChild(c); inner.appendChild(l); lnAdd(ln, l, [c]);
+  }
+  toggleLine("tog:adult", "Adult content (18+)", "OFF hides every adult channel, category, movie and search result for this profile", function () { return !!PD.st.adult; }, function (v) { PD.st.adult = v; });
+  toggleLine("tog:qc", "Hide Quebec / French-Canadian content", "Removes TVA, Noovo, RDS, ICI Radio-Canada, Télé-Québec, Super Écran\u2026 and Quebec groups from TV, Movies, Shows, search and sports", function () { return qcHidden(); }, function (v) { PD.st.hideQC = v; });
+  navBtn(inner, ln, "\uD83C\uDDE9\uD83C\uDDEA  Extra channels from other countries", (extraIds().length ? "Picked: " + extraChannels().map(function (c) { return logoName(c.n).split(" ").map(niceWord).join(" "); }).join(", ") : "None picked") + "  \u00b7  e.g. German DMAX and Discovery", function () { stPage("extra"); });
+  inner.appendChild(ce("div", "s-sec", "More settings"));
   navBtn(inner, ln, "\uD83D\uDCFA  Live TV filters", "Choose regions, countries and channel types for the TV tab. Showing " + lc + " of " + lt + " channel groups.", function () { stPage("live"); });
   navBtn(inner, ln, "\uD83C\uDFAC  Movies & Shows filters", "Languages, genres and streaming sources for Movies, Shows and Search.", function () { stPage("vod"); });
   navBtn(inner, ln, "\uD83C\uDFD2  Sports, events & time", "Favourite NHL team: " + (PD.st.nhlTeam ? teamName(PD.st.nhlTeam) : "none") + "  \u00b7  Game times shown in: " + tzLabel(), function () { stPage("sports"); });
   navBtn(inner, ln, "\uD83D\uDC64  Profiles", "Switch, add, rename or delete profiles and change avatars.", function () { closeSettings(); openWho(true); });
   navBtn(inner, ln, "\uD83D\uDCCA  " + PF.name + "'s viewing stats", "Hours watched, top genres, top channels, recent activity.", function () { closeSettings(); openProfilePage(); });
   navBtn(inner, ln, "\uD83D\uDD11  Account", "Your IPTV provider login (shared by all profiles).", function () { stPage("account"); });
-  inner.appendChild(ce("div", "s-note", "NickFlix 3.0"));
+  inner.appendChild(ce("div", "s-note", "NickFlix 4.0"));
 }
 function liveCodes() {
-  var cnt = {}; cats.live.forEach(function (c) { cnt[c.code] = (cnt[c.code] || 0) + 1; }); return cnt;
+  var cnt = {}; cats.live.forEach(function (c) { if (!c.adult) cnt[c.code] = (cnt[c.code] || 0) + 1; }); return cnt;
 }
 function setCountry(code, on) { PD.st.live.countries[code] = on ? 1 : 0; ST.dirty = true; savePD(); }
 function stLive(inner, ln) {
@@ -83,7 +94,7 @@ function stLive(inner, ln) {
   preset("Recommended (CA + US sports & news)", function () { L.countries = {}; L.typesOff = {}; L.ctypes = JSON.parse(JSON.stringify(LIVE_DEFAULT_CTYPES)); });
   preset("Hide all Asian & Latino", function () { REGIONS.forEach(function (r) { if (/Asia|Latin|Brazil/.test(r[0])) r[1].forEach(function (c) { L.countries[c] = 0; }); }); });
   preset("North America only", function () { Object.keys(cnt).forEach(function (c) { L.countries[c] = (c === "CA" || c === "US") ? 1 : 0; }); });
-  preset("Show everything (no adult)", function () { Object.keys(cnt).forEach(function (c) { L.countries[c] = c === "ADULT" ? 0 : 1; }); L.typesOff = {}; L.ctypes = {}; });
+  preset("Show everything", function () { Object.keys(cnt).forEach(function (c) { L.countries[c] = 1; }); L.typesOff = {}; L.ctypes = {}; });
   inner.appendChild(pl); lnAdd(ln, pl, pit);
   // regions
   inner.appendChild(ce("div", "s-sec", "Regions & countries"));
@@ -145,9 +156,9 @@ function stSports(inner, ln) {
   var l1 = ce("div", "s-line"), b1 = chip("Favourite NHL team: " + (PD.st.nhlTeam ? teamName(PD.st.nhlTeam) : "none") + "  \u2013 change", "", !!PD.st.nhlTeam, function () { openTeamPicker(); }, "act wide");
   l1.appendChild(b1); inner.appendChild(l1); lnAdd(ln, l1, [b1]);
   inner.appendChild(ce("div", "s-sec", "Show times in"));
-  inner.appendChild(ce("div", "s-note", "Default is UTC\u22127 all year (Creston / Mountain Standard). Shared by all profiles. Now: " + fmtClock(Date.now())));
+  inner.appendChild(ce("div", "s-note", "Default is Creston (UTC\u22127 all year, no daylight saving). Zones marked \u201cwith DST\u201d follow the US/Canada rules (2nd Sunday of March to 1st Sunday of November). Shared by all profiles. Now: " + fmtClock(Date.now())));
   grid(inner, ln, TZ_OPTS, 2, function (o) {
-    var cur = account.tz == null ? "-420" : String(account.tz);
+    var cur = tzId();
     var c = chip(o[1], "", cur === o[0], null); c._key = "tz:" + o[0];
     c._act = function () { account.tz = o[0]; saveAccount(); XC = {}; tick(); ST.dirty = true; renderSettings(c._key); };
     return c;
@@ -156,9 +167,46 @@ function stSports(inner, ln) {
   var l2 = ce("div", "s-line"), b2 = chip("Reset what NickFlix learned for " + PF.name, "", false, function () { if (b2._armed) { PD.learn = {}; savePD(true); toast("Learning reset for " + PF.name); ST.dirty = true; b2._armed = false; } else { b2._armed = true; toast("Press OK again to reset"); } }, "act");
   l2.appendChild(b2); inner.appendChild(l2); lnAdd(ln, l2, [b2]);
 }
+/* extra channels from countries that are switched off (start with Germany) */
+var XC_COUNTRIES = [["DE", "Germany"], ["NOW", "Germany (Sky/WOW)"], ["AT", "Austria"], ["SW", "Switzerland"], ["FR", "France"], ["IT", "Italy"], ["ES", "Spain"], ["NL", "Netherlands"], ["AU", "Australia"], ["IE", "Ireland"]];
+function stExtra(inner, ln) {
+  inner.appendChild(ce("div", "s-h1", "Extra channels from other countries"));
+  inner.appendChild(ce("div", "s-sub", "Pick single channels from countries you keep switched off. Picks are per profile (" + PF.name + "), appear in a \u201c" + (extraLabel() || "German Picks") + "\u201d tile and row on the TV hub, and inside matching categories (e.g. Documentary)."));
+  if (!CH.all) {
+    inner.appendChild(ce("div", "s-note", "Loading the channel list\u2026"));
+    ensureIndex().then(function () { if (OV.top() === ST && ST.page === "extra") renderSettings("x"); });
+    return;
+  }
+  function chChip(ch, label) {
+    var c = chip(label || logoName(ch.n), (catById["live:" + ch.c] || {}).code || "", !!PD.st.extra[ch.id], null); c._key = "xch:" + ch.id;
+    c._act = function () { var on = !PD.st.extra[ch.id]; setExtra(ch, on); setChip(c, on); ST.dirty = true; toast((on ? "Added " : "Removed ") + logoName(ch.n)); };
+    return c;
+  }
+  var picks = extraChannels();
+  inner.appendChild(ce("div", "s-sec", "Your picks (" + picks.length + ")"));
+  if (picks.length) grid(inner, ln, picks, 3, function (ch) { return chChip(ch, logoName(ch.n).split(" ").map(niceWord).join(" ")); });
+  else inner.appendChild(ce("div", "s-note", "None yet."));
+  inner.appendChild(ce("div", "s-sec", "Popular German channels (best quality version)"));
+  var sug = []; EXTRA_SUGGEST.forEach(function (sg) { var b = bestGerman(sg); if (b) sug.push([b, sg[0]]); });
+  grid(inner, ln, sug, 3, function (x) { return chChip(x[0], x[1]); });
+  inner.appendChild(ce("div", "s-sec", "Browse a country"));
+  var codes = XC_COUNTRIES.filter(function (x) { return cats.live.some(function (c) { return c.code === x[0] && !c.adult; }); });
+  grid(inner, ln, codes, 4, function (x) { var c = chip(x[1], "", ST.xc === x[0], null, "act"); c._key = "xc:" + x[0]; c._act = function () { ST.xc = ST.xc === x[0] ? null : x[0]; ST.xg = null; renderSettings(c._key); }; return c; });
+  if (ST.xc) {
+    var groups = cats.live.filter(function (c) { return c.code === ST.xc && !c.adult && !(c.qc && qcHidden()); });
+    inner.appendChild(ce("div", "s-sec", "Groups in " + ST.xc));
+    grid(inner, ln, groups, 3, function (g) { var c = chip(g.title, "", ST.xg === g.id, null, "act"); c._key = "xg:" + g.id; c._act = function () { ST.xg = ST.xg === g.id ? null : g.id; renderSettings(c._key); }; return c; });
+    if (ST.xg) {
+      var list = dedupeBest(CH.all.filter(function (ch) { return ch.c === ST.xg && !ch.ad; }), 120);
+      list.sort(function (a, b) { return logoName(a.n).localeCompare(logoName(b.n)); });
+      inner.appendChild(ce("div", "s-sec", "Channels \u2013 OK to add/remove"));
+      grid(inner, ln, list, 3, function (ch) { return chChip(ch); });
+    }
+  }
+}
 function langList() {
   var cnt = {};
-  ["movies", "series"].forEach(function (t) { cats[t].forEach(function (c) { cnt[c.code] = (cnt[c.code] || 0) + 1; }); });
+  ["movies", "series"].forEach(function (t) { cats[t].forEach(function (c) { if (!c.adult) cnt[c.code] = (cnt[c.code] || 0) + 1; }); });
   var codes = Object.keys(cnt);
   codes.sort(function (a, b) { var da = DEFAULT_LANGS[a] ? 0 : 1, db = DEFAULT_LANGS[b] ? 0 : 1; if (da !== db) return da - db; return (LANG_NAMES[a] || a).localeCompare(LANG_NAMES[b] || b); });
   return codes.map(function (c) { return { key: c, label: LANG_NAMES[c] || c, sub: c + " \u00b7 " + cnt[c] }; });
@@ -398,7 +446,7 @@ function showSearch() {
   renderQ(); startIndex(); runSearch();
 }
 function renderQ() { var q = $("search-q"); q.textContent = ""; if (S.q) q.textContent = S.q + "_"; else q.appendChild(ce("span", "ph", "Type to search\u2026")); }
-function searchCats() { var out = []; ["live", "movies", "series"].forEach(function (t) { cats[t].forEach(function (c) { if (catVisible(c)) out.push(c); }); }); return out; }
+function searchCats() { var out = []; ["live", "movies", "series"].forEach(function (t) { cats[t].forEach(function (c) { if (catVisible(c) || (c.adult && adultOk())) out.push(c); }); }); return out; }
 function startIndex() {
   var list = searchCats(); S.total = list.length; S.done = 0; var g = ++S.gen, i = 0, running = 0;
   function next() { if (g !== S.gen) return; while (running < 3 && i < list.length) { var c = list[i++]; running++; loadCat(c).then(fin, fin); } }
@@ -418,7 +466,7 @@ function runSearch() {
     var g = groups[c.type]; if (g.length >= 40) return;
     for (var i = 0; i < arr.length && g.length < 40; i++) {
       var it = arr[i], key = normTitle(it);
-      if (it.ad && !ok) continue;
+      if (!itemOK(it)) continue;
       if (!seen[key] && it.n.toLowerCase().indexOf(q) >= 0) { seen[key] = 1; g.push(it); }
     }
   });

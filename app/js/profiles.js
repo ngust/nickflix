@@ -32,6 +32,12 @@ function loadProfile(id) {
   st.live = st.live || {}; st.live.countries = st.live.countries || {}; st.live.typesOff = st.live.typesOff || {};
   if (!st.live.ctypes) st.live.ctypes = JSON.parse(JSON.stringify(LIVE_DEFAULT_CTYPES));
   st.view = ["live", "movies", "series", "mylist"].indexOf(st.view) >= 0 ? st.view : "movies";
+  // v4: one adult switch (default off) replaces the old per-country/per-language adult checkboxes
+  delete st.v.langs.ADULT; delete st.live.countries.ADULT;
+  st.adult = st.adult === true;
+  if (st.hideQC === undefined) st.hideQC = true;
+  if (!st.extra) st.extra = {};
+  if (!st.extraInit) { st.extraInit = 1; if (/^nick/i.test(PF.name)) st.extraWant = ["DMAX", "DISCOVERY"]; }
   PD = d;
 }
 var saveT = null;
@@ -61,8 +67,10 @@ function deleteProfile(id) {
 function avatarSrc(i) { return "img/av/" + ((+i || 0) % AVATARS) + ".png"; }
 
 /* ---------- Movies/Shows filters ---------- */
-function vLangOn(code) { var l = PD.st.v.langs; return l[code] !== undefined ? !!l[code] : !!DEFAULT_LANGS[code]; }
+function vLangOn(code) { if (code === "ADULT") return false; var l = PD.st.v.langs; return l[code] !== undefined ? !!l[code] : !!DEFAULT_LANGS[code]; }
 function catVisibleV(c) {
+  if (c.adult) return false;              // adult VOD only lives in TV > Adult (18+)
+  if (c.qc && qcHidden()) return false;
   if (!vLangOn(c.code)) return false;
   var i, ok = false, st = PD.st.v;
   for (i = 0; i < c.genres.length; i++) if (!st.genresOff[c.genres[i]]) { ok = true; break; }
@@ -71,9 +79,11 @@ function catVisibleV(c) {
   return false;
 }
 /* ---------- Live TV filters ---------- */
-function liveCountryOn(code) { var c = PD.st.live.countries; return c[code] !== undefined ? !!c[code] : !!LIVE_DEFAULT_ON[code]; }
+function liveCountryOn(code) { if (code === "ADULT") return false; var c = PD.st.live.countries; return c[code] !== undefined ? !!c[code] : !!LIVE_DEFAULT_ON[code]; }
 function liveCountryTypes(code) { return PD.st.live.ctypes[code] || null; }
 function catVisibleLive(c) {
+  if (c.adult) return false;              // shown only through the Adult (18+) tile
+  if (c.qc && qcHidden()) return false;
   if (!liveCountryOn(c.code)) return false;
   if (PD.st.live.typesOff[c.ltype]) return false;
   var ct = liveCountryTypes(c.code);
@@ -81,7 +91,18 @@ function catVisibleLive(c) {
   return true;
 }
 function catVisible(c) { return c.type === "live" ? catVisibleLive(c) : catVisibleV(c); }
-function adultOk() { return vLangOn("ADULT") || liveCountryOn("ADULT"); }
+function adultOk() { return !!(PD && PD.st.adult); }
+function qcHidden() { return !(PD && PD.st.hideQC === false); }
+/* single gate for every item shown anywhere (rows, search, curated, history) */
+function itemOK(it) {
+  if (!it) return false;
+  if (it.ad && !adultOk()) return false;
+  if (it.qc && qcHidden()) return false;
+  var c = catById[it.t + ":" + it.c];
+  if (c && c.adult && !adultOk()) return false;
+  if (c && c.qc && qcHidden()) return false;
+  return true;
+}
 function liveRank(c) {
   var na = c.code === "CA" ? 0 : c.code === "US" ? 1 : 2;
   if (c.ltype === "Sports" && na < 2) return 0 + na * 0.1;
@@ -94,7 +115,7 @@ function liveRank(c) {
 
 /* ---------- history / positions / list / stats ---------- */
 function snap(it) {
-  var o = {}; ["t", "id", "n", "ic", "ext", "y", "r", "tm", "bd", "c", "genre"].forEach(function (k) { if (it[k] !== undefined && it[k] !== "") o[k] = it[k]; });
+  var o = {}; ["t", "id", "n", "ic", "ext", "y", "r", "tm", "bd", "c", "genre", "ad", "qc"].forEach(function (k) { if (it[k] !== undefined && it[k] !== "") o[k] = it[k]; });
   return o;
 }
 function itemGenres(it) {

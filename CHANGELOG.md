@@ -2,6 +2,9 @@
 
 All dates 2026. NickFlix is a Netflix-style front end for an Xtream-codes IPTV account on Samsung Tizen TVs.
 
+## 4.0
+- British, American and Canadian sub-category and network tiles; per-profile Adult (18+) toggle (off by default); Quebec filter; channel logos (tv-logo/tv-logos); extra-channels picker for individual foreign channels.
+
 ## 3.0
 - TV hub with picture tiles; Sports with NHL first (NHL API + ESPN scoreboard), favourite-team picker; News with now/next; Live Events banner; per-profile learning.
 

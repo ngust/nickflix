@@ -2,11 +2,30 @@
 "use strict";
 var NHL_BASE = "https://api-web.nhle.com/v1", ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports";
 
-/* ---------------- time zone (fixed offsets; default UTC-7 like Creston/MST) ---------------- */
-var TZ_OPTS = [["-420", "Creston / MST \u2013 UTC\u22127"], ["-480", "Pacific \u2013 UTC\u22128"], ["-360", "Central \u2013 UTC\u22126"], ["-300", "Eastern \u2013 UTC\u22125"], ["-240", "Atlantic \u2013 UTC\u22124"], ["0", "UTC"], ["dev", "Use the TV's clock"]];
-function tzOff() { var t = account.tz; if (t === "dev") return -new Date().getTimezoneOffset(); return t != null && t !== "" ? +t : -420; }
-function tzLabel() { var t = account.tz == null ? "-420" : String(account.tz); for (var i = 0; i < TZ_OPTS.length; i++) if (TZ_OPTS[i][0] === t) return TZ_OPTS[i][1]; return TZ_OPTS[0][1]; }
-function zDate(ms) { return new Date(ms + tzOff() * 60000); }
+/* ---------------- time zones: fixed offsets + North American DST rules ---------------- */
+// [id, label, standard offset (min), dst?]   default "-420" = Creston (UTC-7 all year)
+var TZ_OPTS = [["-420", "Creston / Arizona \u2013 UTC\u22127 all year", -420, 0], ["van", "Vancouver / B.C. \u2013 Pacific Time (UTC\u22127 all year since Nov 2026)", -480, 2],
+  ["pac", "US Pacific (Seattle, LA) \u2013 with DST", -480, 1], ["mtn", "Mountain (Calgary, Denver) \u2013 with DST", -420, 1], ["cen", "Central (Winnipeg, Chicago) \u2013 with DST", -360, 1],
+  ["est", "Eastern (Toronto, New York) \u2013 with DST", -300, 1], ["atl", "Atlantic (Halifax) \u2013 with DST", -240, 1], ["0", "UTC", 0, 0], ["dev", "Use the TV's own clock", 0, 0]];
+var TZ_LEGACY = { "-480": "pac", "-360": "cen", "-300": "est", "-240": "atl" };
+function tzId() { var t = account.tz == null || account.tz === "" ? "-420" : String(account.tz); return TZ_LEGACY[t] || t; }
+function tzOpt() { var t = tzId(); for (var i = 0; i < TZ_OPTS.length; i++) if (TZ_OPTS[i][0] === t) return TZ_OPTS[i]; return TZ_OPTS[0]; }
+function nthSunday(y, mon, n) { var d = new Date(Date.UTC(y, mon, 1)).getUTCDay(); return 1 + ((7 - d) % 7) + (n - 1) * 7; }
+// US/Canada rule: DST from 2:00 local on the 2nd Sunday of March to 2:00 local on the 1st Sunday of November
+function naDst(ms, std) {
+  var y = new Date(ms + std * 60000).getUTCFullYear();
+  var start = Date.UTC(y, 2, nthSunday(y, 2, 2), 2) - std * 60000, end = Date.UTC(y, 10, nthSunday(y, 10, 1), 2) - (std + 60) * 60000;
+  return ms >= start && ms < end;
+}
+function tzOff(ms) {
+  if (ms == null) ms = Date.now();
+  var o = tzOpt();
+  if (o[0] === "dev") return -new Date(ms).getTimezoneOffset();
+  if (o[3] === 2) return ms >= Date.UTC(2026, 2, 8, 10) ? -420 : (naDst(ms, -480) ? -420 : -480);   // B.C. kept UTC-7 permanently from 8 Mar 2026
+  return o[2] + (o[3] === 1 && naDst(ms, o[2]) ? 60 : 0);
+}
+function tzLabel() { return tzOpt()[1]; }
+function zDate(ms) { return new Date(ms + tzOff(ms) * 60000); }
 var DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function fmtClock(ms) { var d = zDate(ms), h = d.getUTCHours(), m = d.getUTCMinutes(); return ((h % 12) || 12) + ":" + (m < 10 ? "0" : "") + m + (h < 12 ? " AM" : " PM"); }
 function dayKey(ms) { var d = zDate(ms); return d.getUTCFullYear() * 400 + d.getUTCMonth() * 32 + d.getUTCDate(); }
@@ -54,12 +73,19 @@ function ensureIndex() {
       (by[cid] = by[cid] || []).push(o); all.push(o);
     });
     for (var cid in by) if (!cache["live:" + cid]) cache["live:" + cid] = by[cid];
-    CH.all = all; return all;
+    CH.all = all; LOGO_MEMO = {};
+    try { resolveExtraWant(); } catch (e) {}
+    return all;
   }, function (e) { CH.p = null; throw e; });
   return CH.p;
 }
 function chanCat(ch) { return catById["live:" + ch.c]; }
-function chanOK(ch) { var c = chanCat(ch); return c && !ch.ad && liveCountryOn(c.code) && !PD.st.live.typesOff[c.ltype]; }
+function chanOK(ch) {
+  var c = chanCat(ch); if (!c || c.adult || ch.ad) return false;
+  if (ch.qc && qcHidden()) return false;
+  if (PD.st.extra[ch.id]) return true;   // individually picked channels from other countries
+  return liveCountryOn(c.code) && !PD.st.live.typesOff[c.ltype] && !(c.qc && qcHidden());
+}
 function chanById(id) { if (!CH.all) return null; for (var i = 0; i < CH.all.length; i++) if (CH.all[i].id == id) return CH.all[i]; return null; }
 var CC_ORDER = { CA: 0, US: 1, UK: 2, EN: 3, MULTI: 4, PPV: 2 };
 function qualityBonus(ch) { var u = ch.up; return (/FHD|ᴴᴰ|\bHD\b|UHD|ᵁᴴᴰ|4K/.test(u) ? 0.6 : 0) + (ch.e ? 0.8 : 0) + (ch.ic ? 0.3 : 0) - (/\bSD\b|\(S\)|BACKUP|ALT\]|\[ALT/.test(u) ? 0.5 : 0); }
@@ -304,6 +330,7 @@ var TILE_DEFS = [
   { id: "c:UK", label: "British", img: "uk", base: 56, f: function (c) { return c.code === "UK"; } },
   { id: "fav", label: "My Channels", img: "fav", base: 54 },
   { id: "recent", label: "Recently Watched", img: "recent", base: 53 },
+  { id: "extra", label: "German Picks", img: "germany", base: 52 },
   { id: "t:Kids", label: "Kids", img: "kids", base: 40, f: function (c) { return c.ltype === "Kids"; } },
   { id: "t:Movie channels", label: "Movie Channels", img: "movies", base: 40, f: function (c) { return c.ltype === "Movie channels"; } },
   { id: "t:Documentary", label: "Documentary", img: "docs", base: 38, f: function (c) { return c.ltype === "Documentary"; } },
@@ -312,7 +339,8 @@ var TILE_DEFS = [
   { id: "t:24/7 channels", label: "24/7 Non-Stop", img: "247", base: 34, f: function (c) { return c.ltype === "24/7 channels"; } },
   { id: "t:Local channels", label: "Local", img: "local", base: 33, f: function (c) { return c.ltype === "Local channels"; } },
   { id: "intl", label: "International", img: "world", base: 30, f: function (c) { return ["CA", "US", "UK"].indexOf(c.code) < 0; } },
-  { id: "all", label: "All Channels", img: "world", base: 5, f: function () { return true; } }
+  { id: "all", label: "All Channels", img: "world", base: 5, f: function () { return true; } },
+  { id: "adult", label: "Adult (18+)", img: "adult", base: 1 }
 ];
 var TILE_BY = {}; TILE_DEFS.forEach(function (t) { TILE_BY[t.id] = t; });
 function tilesForCat(c) { var o = []; TILE_DEFS.forEach(function (t) { if (t.f && t.id !== "all" && t.f(c)) o.push(t.id); }); return o; }
@@ -323,6 +351,8 @@ function hubTiles(evCount) {
     var n = 0, sub = "";
     if (t.id === "events") { if (!evCount) return; n = evCount; sub = evCount + (evCount === 1 ? " event" : " events") + " coming up"; }
     else if (t.id === "fav") { n = PD.list.filter(function (h) { return h.it.t === "live"; }).length; if (!n) return; sub = n + " saved"; }
+    else if (t.id === "extra") { n = extraIds().length; if (!n) return; sub = n + (n === 1 ? " channel" : " channels") + " you picked"; t.label = extraLabel(); }
+    else if (t.id === "adult") { if (!adultOk()) return; n = adultCats("live").length + adultCats("movies").length + adultCats("series").length; if (!n) return; sub = n + " categories"; }
     else if (t.id === "recent") { n = PD.hist.filter(function (h) { return h.it.t === "live"; }).length; if (!n) return; sub = Math.min(n, 30) + " channels"; }
     else { n = pageCats(t).length; if (!n) return; sub = n + (n === 1 ? " group" : " groups"); }
     var score = t.base + (t.id === "events" ? 100 : 40 * learnScore("tile", t.id) / mx);
@@ -336,10 +366,10 @@ function hubTiles(evCount) {
 var EV = { list: null, p: null, t: 0 };
 function eventsP() { if (EV.list && Date.now() - EV.t < 10 * 60000) return Promise.resolve(EV.list); if (EV.p) return EV.p; EV.p = majorEvents().then(function (l) { EV.list = l; EV.t = Date.now(); EV.p = null; return l; }, function () { EV.p = null; return []; }); return EV.p; }
 function liveLocalRows() { return rowsLocal("live"); }
-function tileRows(tiles) {
+function tileRows(tiles, title) {
   var rows = [];
   for (var i = 0; i < tiles.length; i += 5) (function (chunk, first) {
-    rows.push({ title: first ? "Browse TV" : "", kind: "t", local: true, load: function () { return Promise.resolve(chunk); } });
+    rows.push({ title: first ? (title || "Browse TV") : "", kind: "t", local: true, load: function () { return Promise.resolve(chunk); } });
   })(tiles.slice(i, i + 5), i === 0);
   return rows;
 }
@@ -349,6 +379,7 @@ function hubSpecs() {
   if (!EV.list) eventsP().then(function (l) { if (V.view === "live" && !V.page && l.length && !OV.top() && !P.open) { var z = V.zone, top = z !== "rows" || (V.r === 0 && V.rows[0] && V.rows[0].col === 0); refreshLocalRows(); V.zone = z; if (top && V.rows.length) { V.r = 0; V.rows[0].col = 0; } if (z === "rows") applyFocus(); } });
   if (evN) rows.push({ title: EV.list.some(function (e) { return e.soon; }) ? "\u2B50 Live Events" : "\u2B50 Coming Up", kind: "e", local: true, load: function () { return Promise.resolve(EV.list); } });
   rows = rows.concat(tileRows(hubTiles(evN)));
+  if (extraIds().length) rows = rows.concat(extraSpecs(""));
   rows.push({ title: "Your top channels", kind: "l", epg: true, local: true, load: function () {
     var top = learnTop("ch", 20), out = [];
     top.forEach(function (x) { var h = histChan(x[0]); if (h) out.push(h); });
@@ -364,7 +395,7 @@ function histChan(id) {
 }
 function catRows(list) {
   return list.map(function (c) {
-    return { count: true, title: c.title, badge: c.code !== "MULTI" ? c.code : "", tag: c.ltype, load: function () { return loadCat(c).then(function (items) { var ok = adultOk(); return ok ? items : items.filter(function (x) { return !x.ad; }); }); } };
+    return { count: true, title: c.title, badge: c.code !== "MULTI" ? c.code : "", tag: c.ltype, load: function () { return loadCat(c).then(function (items) { return items.filter(itemOK); }); } };
   });
 }
 function featuredFrom(list, max) {
@@ -377,7 +408,7 @@ function featuredFrom(list, max) {
       var seen = {}, out = [];
       learned.forEach(function (id) { var h = histChan(id); if (h && ids[h.c] && !seen[h.id]) { seen[h.id] = 1; out.push(h); } });
       pool.sort(function (a, b) { return ((b.e ? 2 : 0) + (b.ic ? 1 : 0)) - ((a.e ? 2 : 0) + (a.ic ? 1 : 0)); });
-      pool.forEach(function (it) { var k = it.n.toUpperCase().replace(/\W|HD|FHD|UHD/g, ""); if (!seen[it.id] && !seen[k] && out.length < (max || 24) && !it.ad) { seen[it.id] = 1; seen[k] = 1; out.push(it); } });
+      pool.forEach(function (it) { var k = it.n.toUpperCase().replace(/\W|HD|FHD|UHD/g, ""); if (!seen[it.id] && !seen[k] && out.length < (max || 24) && itemOK(it)) { seen[it.id] = 1; seen[k] = 1; out.push(it); } });
       return out;
     });
   };
@@ -462,8 +493,9 @@ function newsSpecs() {
 
 /* ---------------- cards for new kinds ---------------- */
 function tileCard(it) {
-  var c = ce("div", "tile");
-  var im = document.createElement("img"); im.src = it.img; im.alt = ""; c.appendChild(im);
+  var c = ce("div", "tile" + (it.img ? "" : " tt"));
+  if (it.img) { var im = document.createElement("img"); im.src = it.img; im.alt = ""; c.appendChild(im); }
+  else c.style.background = "linear-gradient(135deg," + (it.col || "#333") + " 0%,#101016 100%)";
   c.appendChild(ce("div", "tile-shade"));
   c.appendChild(ce("div", "tile-l", it.n));
   c.appendChild(ce("div", "tile-s", it.sub || ""));
@@ -545,7 +577,7 @@ function renderPicker(list, err) {
   var items = list.map(function (m) { return m.ch; });
   list.slice(0, 14).forEach(function (m, i) {
     var c = chanCat(m.ch), l = ce("div", "s-line"), b = ce("div", "pk-ch");
-    b.appendChild(logoImg(m.ch.ic, "pk-ic"));
+    b.appendChild(logoImg(logoFor(m.ch) || m.ch.ic, "pk-ic" + (logoFor(m.ch) ? " lp" : "")));
     var tx = ce("div", "pk-tx"); tx.appendChild(ce("div", "pk-n", m.ch.n)); tx.appendChild(ce("div", "pk-c", (c ? c.title + " \u00b7 " + c.code : "") + (m.why.length ? "  \u00b7  matched: " + m.why.slice(0, 4).join(", ") : ""))); b.appendChild(tx);
     if (i === 0) b.appendChild(ce("div", "pk-best", "Best match"));
     b._act = function () { closePicker(true); P.game = PK.item; playItem(m.ch, items, i); };
@@ -592,6 +624,7 @@ function openLivePage(id) {
   buildView("live"); V.zone = "rows"; V.r = 0; applyFocus();
   if (!CH.all) ensureIndex().catch(function () {});
 }
+/* tiles of a page can be text tiles: register label for page title */
 function closeLivePage() {
   var s = (V.pageStack || []).pop();
   V.page = s ? s.page : null;

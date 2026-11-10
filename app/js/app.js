@@ -183,7 +183,7 @@ function startLoad(row, gen) {
   p.then(function (items) {
     active--; row.loading = false;
     if (gen !== V.gen) { ensureRows(); return; }
-    row.items = items || [];
+    row.items = (items || []).filter(itemOK);   // adult / Quebec gate for every row
     if (!row.items.length) removeRow(row);
     else {
       row.msg.style.display = "none";
