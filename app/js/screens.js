@@ -81,7 +81,7 @@ function stHome(inner, ln) {
   navBtn(inner, ln, "\uD83D\uDD11  Account", "Your IPTV provider login (shared by all profiles).", function () { stPage("account"); });
   inner.appendChild(ce("div", "s-sec", "App"));
   toggleLine("tog:intro", "Intro animation", "Play the NickFlix intro with sound when the app starts (all profiles). Any key skips it.", function () { return introEnabled(); }, function (v) { try { localStorage.setItem("nf_intro", v ? "1" : "0"); } catch (e) {} });
-  inner.appendChild(ce("div", "s-note", "NickFlix 4.3"));
+  inner.appendChild(ce("div", "s-note", "NickFlix 4.3.1"));
 }
 function liveCodes() {
   var cnt = {}; cats.live.forEach(function (c) { if (!c.adult) cnt[c.code] = (cnt[c.code] || 0) + 1; }); return cnt;

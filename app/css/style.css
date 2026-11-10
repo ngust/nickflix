@@ -371,3 +371,10 @@ body.playing #pick,body.playing #teams{visibility:hidden}
 #intro.ni-go .ni-flash{animation:niFlash .3s ease-out 1.12s both}
 @keyframes niFlash{0%{opacity:0}12%{opacity:.32}100%{opacity:0}}
 @keyframes niZoom{0%{transform:scale(1);opacity:1}70%{opacity:1}100%{transform:scale(9);opacity:0}}
+
+/* v4.3.1: nothing from the UI may paint over AVPlay video (video is behind the DOM) */
+body.playing #app,body.playing #app *,body.playing #details,body.playing #details *,body.playing #settings,body.playing #settings *,
+body.playing #who,body.playing #who *,body.playing #pedit,body.playing #pedit *,body.playing #profile,body.playing #profile *,
+body.playing #pick,body.playing #pick *,body.playing #teams,body.playing #teams *{visibility:hidden!important}
+body.playing #hero-bg,body.playing #d-bg,body.playing .d-shade,body.playing .hero-shade,body.playing #splash,body.playing #intro{display:none!important}
+html.playing,body.playing,body.playing #player{background:transparent!important;background-image:none!important}

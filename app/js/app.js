@@ -141,7 +141,7 @@ function mergeInfo(it, inf) {
   if (inf.imdb_id) it.imdb = String(inf.imdb_id);
   var bd = firstImg(inf.backdrop_path); if (bd) it.bd = bd;
 }
-function setHeroBg(src) { var b = $("hero-bg"); if (!src) return; b.style.visibility = "hidden"; b.onload = function () { b.style.visibility = "visible"; }; b.src = src; }
+function setHeroBg(src) { var b = $("hero-bg"); if (!src) return; b.style.visibility = "hidden"; b.onload = function () { b.style.visibility = ""; }; b.src = src; }
 function metaInto(m, it, extra) {
   m.textContent = "";
   var rb = ratingBadge(it); if (rb) m.appendChild(rb);
@@ -360,7 +360,7 @@ var D = { open: false, item: null, ln: null, seasons: null, season: null, eps: {
 function openDetails(item) {
   D.open = true; D.item = item; D.eps = {}; D.season = null; D.seasons = []; D.flat = []; D.loaded = false;
   $("details").classList.remove("hidden");
-  var bg = $("d-bg"); bg.style.visibility = "hidden"; bg.onload = function () { bg.style.visibility = "visible"; };
+  var bg = $("d-bg"); bg.style.visibility = "hidden"; bg.onload = function () { bg.style.visibility = ""; };
   if (item.bd || item.ic) bg.src = item.bd || item.ic;
   D.ln = LN($("d-body"), 760);
   renderDetails("Loading details\u2026");
