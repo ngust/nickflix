@@ -49,7 +49,7 @@ function renderSettings(keepKey) {
   var logo = document.createElement("img"); logo.src = "img/logo.png"; logo.className = "s-logo"; hdr.appendChild(logo);
   var who = ce("div", "s-who"); var av = document.createElement("img"); av.src = avatarSrc(PF.av); who.appendChild(av); who.appendChild(ce("span", "", PF.name)); hdr.appendChild(who);
   inner.appendChild(hdr);
-  ({ home: stHome, live: stLive, vod: stVod, account: stAccount, sports: stSports, extra: stExtra })[ST.page](inner, ln);
+  ({ home: stHome, live: stLive, vod: stVod, account: stAccount, sports: stSports, extra: stExtra, fav: stFav })[ST.page](inner, ln);
   if (keepKey && lnFind(ln, keepKey)) {} else if (!keepKey) { ln.li = 0; ln.ci = 0; }
   lnFocus(ln);
 }
@@ -72,6 +72,7 @@ function stHome(inner, ln) {
   toggleLine("tog:adult", "Adult content (18+)", "OFF hides every adult channel, category, movie and search result for this profile", function () { return !!PD.st.adult; }, function (v) { PD.st.adult = v; });
   toggleLine("tog:qc", "Hide Quebec / French-Canadian content", "Removes TVA, Noovo, RDS, ICI Radio-Canada, Télé-Québec, Super Écran\u2026 and Quebec groups from TV, Movies, Shows, search and sports", function () { return qcHidden(); }, function (v) { PD.st.hideQC = v; });
   navBtn(inner, ln, "\uD83C\uDDE9\uD83C\uDDEA  Extra channels from other countries", (extraIds().length ? "Picked: " + extraChannels().map(function (c) { return logoName(c.n).split(" ").map(niceWord).join(" "); }).join(", ") : "None picked") + "  \u00b7  e.g. German DMAX and Discovery", function () { stPage("extra"); });
+  navBtn(inner, ln, "\u2B50  Favourite categories", (function () { var f = favOf(PF), l = f.cc.map(function (c) { return COUNTRY[c]; }).concat(f.subs, f.niches); return l.length ? "Favourites: " + l.join(", ") : "None yet"; })() + "  \u00b7  pinned higher on the TV hub and in Top picks", function () { stPage("fav"); });
   inner.appendChild(ce("div", "s-sec", "More settings"));
   navBtn(inner, ln, "\uD83D\uDCFA  Live TV filters", "Choose regions, countries and channel types for the TV tab. Showing " + lc + " of " + lt + " channel groups.", function () { stPage("live"); });
   navBtn(inner, ln, "\uD83C\uDFAC  Movies & Shows filters", "Languages, genres and streaming sources for Movies, Shows and Search.", function () { stPage("vod"); });
@@ -81,7 +82,7 @@ function stHome(inner, ln) {
   navBtn(inner, ln, "\uD83D\uDD11  Account", "Your IPTV provider login (shared by all profiles).", function () { stPage("account"); });
   inner.appendChild(ce("div", "s-sec", "App"));
   toggleLine("tog:intro", "Intro animation", "Play the NickFlix intro with sound when the app starts (all profiles). Any key skips it.", function () { return introEnabled(); }, function (v) { try { localStorage.setItem("nf_intro", v ? "1" : "0"); } catch (e) {} });
-  inner.appendChild(ce("div", "s-note", "NickFlix 4.3.1"));
+  inner.appendChild(ce("div", "s-note", "NickFlix 4.4"));
 }
 function liveCodes() {
   var cnt = {}; cats.live.forEach(function (c) { if (!c.adult) cnt[c.code] = (cnt[c.code] || 0) + 1; }); return cnt;

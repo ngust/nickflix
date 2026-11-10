@@ -119,9 +119,9 @@ function whLiveSimilar(anchor, max) {
   else pool = (CH.all || []).filter(function (ch) { var c = chanCat(ch); return c && c.code === cc && chanOK(ch) && itemOK(ch); });
   var ao = null; try { ao = typeof tvcOf === "function" ? tvcOf(anchor.it) : null; } catch (e) {} var akey = ao ? ao.key : "";
   var l = pool.filter(function (ch) {
+    var u = ch.up || String(ch.n).toUpperCase(), o = typeof tvcOf === "function" ? tvcOf(ch) : null, s = o ? o.sub : chanSub(ch);
     if (String(ch.id) === String(anchor.it.id)) return false;
     if (akey && o && o.key === akey) return false;
-    var u = ch.up || String(ch.n).toUpperCase(), o = typeof tvcOf === "function" ? tvcOf(ch) : null, s = o ? o.sub : chanSub(ch);
     return (tc && RE_TCRIME.test(u)) || s === sub;
   });
   l = typeof tvcDedupe === "function" && (cc === "UK" || cc === "US") ? tvcDedupe(l) : dedupeBest(l, 400);

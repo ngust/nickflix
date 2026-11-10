@@ -200,7 +200,7 @@ function tvcCountrySpecs(code) {
     if (s[0] === "24/7") return;   // generic looping feeds are not British/American channels
     var tail = s[0] === "PPV & Events";
     var aff = hasW ? whSubNorm(s[0]) : 0;
-    cats.push({ s: s, all: all, aff: aff, score: (tail ? -100 : 0) + 20 - i + 15 * learnScore("sub", s[0]) / mx + 25 * aff });
+    cats.push({ s: s, all: all, aff: aff, score: (tail ? -100 : 0) + 20 - i + 15 * learnScore("sub", s[0]) / mx + 25 * aff + (typeof favSubBoost === "function" ? favSubBoost(s[0]) : 0) });
   });
   cats.sort(function (a, b) { return b.score - a.score; });
   cats.forEach(function (c) {
