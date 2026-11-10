@@ -1,4 +1,4 @@
 # NickFlix
 
-A Netflix-style IPTV front end for Samsung Tizen TVs. Historical snapshot of version 4.4 (sanitized: provider login, NAS address and personal data replaced with placeholders).
+A Netflix-style IPTV front end for Samsung Tizen TVs. Historical snapshot of version 4.5 (sanitized: provider login, NAS address and personal data replaced with placeholders).
 See CHANGELOG.md. The current version and build instructions are on the latest commit.

@@ -311,7 +311,7 @@ function mainKey(k) {
     else if (k === "right") { if (row) moveCol(row, 1); }
     else if (k === "up") { if (!changeRow(-1)) upFromRows(); }
     else if (k === "down") changeRow(1);
-    else if (k === "back") { if (V.view === "live" && V.page) closeLivePage(); else { V.zone = "nav"; applyFocus(); } }
+    else if (k === "back") { if (V.view === "live" && V.page) closeLivePage(); else if (V.vpage && V.vpage.view === V.view && typeof closeVodPage === "function") closeVodPage(); else { V.zone = "nav"; applyFocus(); } }
     else if (k === "enter" && row && row.items && row.items[row.col]) activate(row.items[row.col], row.items, row.col);
   }
 }
