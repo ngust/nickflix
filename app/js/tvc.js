@@ -188,20 +188,29 @@ function tvcSubLbl(sub) { return TVC_SUBLBL[sub] || sub.toLowerCase(); }
 function tvcCountrySpecs(code) {
   if (!CH.all) return loadingSpec("c:" + code, TVC_ADJ[code] + " channels");
   var adj = TVC_ADJ[code], fl = TVC_FLAG[code] || "", rows = [], mx = learnMax("sub") || 1, cats = [];
-  var pop = tvcSort(tvcDedupe(tvcVisible(code).filter(function (ch) { var o = tvcOf(ch); return o.brand && !o.slot && !o.local; }))).slice(0, 30);
+  var hasW = typeof whHas === "function" && whHas();
+  var pop = tvcSort(tvcDedupe(tvcVisible(code).filter(function (ch) { var o = tvcOf(ch); return o.brand && !o.slot && !o.local; })));
+  if (hasW) {   // v4.3: this profile's affinity pulls its kind of channels to the front of Popular
+    pop = pop.map(function (ch, i) { return { ch: ch, s: -i / 12 + 4 * whChanBonus(ch) }; }).sort(function (a, b) { return b.s - a.s; }).map(function (x) { return x.ch; });
+  }
+  pop = pop.slice(0, 30);
   if (pop.length) rows.push({ title: fl + "Popular " + adj + " channels", kind: "l", epg: true, local: true, load: function () { return Promise.resolve(pop); } });
   SUBS.forEach(function (s, i) {
     var all = tvcSubList(code, s[0]); if (!all.length) return;
     if (s[0] === "24/7") return;   // generic looping feeds are not British/American channels
     var tail = s[0] === "PPV & Events";
-    cats.push({ s: s, all: all, score: (tail ? -100 : 0) + 20 - i + 15 * learnScore("sub", s[0]) / mx });
+    var aff = hasW ? whSubNorm(s[0]) : 0;
+    cats.push({ s: s, all: all, aff: aff, score: (tail ? -100 : 0) + 20 - i + 15 * learnScore("sub", s[0]) / mx + 25 * aff });
   });
   cats.sort(function (a, b) { return b.score - a.score; });
   cats.forEach(function (c) {
     var sub = c.s[0], n = c.all.length, lbl = tvcSubLbl(sub), id = "sub:" + code + ":" + sub;
     XT[id] = { label: adj + " \u203A " + (c.s[2] || sub) };
     var main = c.all.filter(function (ch) { return !tvcOf(ch).team; });
-    var top = sub === "PPV & Events" || sub === "Local" ? tvcAlpha(c.all).slice(0, 24) : tvcSort(main.length ? main : c.all).slice(0, 24);
+    var cap = 24 + (c.aff > 0 ? Math.round(16 * c.aff) : 0);
+    var srt = sub === "PPV & Events" || sub === "Local" ? tvcAlpha(c.all) : tvcSort(main.length ? main : c.all);
+    if (hasW && c.aff > 0) srt = srt.map(function (ch, i) { return { ch: ch, s: -i / 12 + 4 * whChanBonus(ch) }; }).sort(function (a, b) { return b.s - a.s; }).map(function (x) { return x.ch; });
+    var top = srt.slice(0, cap);
     rows.push({ title: adj + " " + lbl + " \u00B7 " + n + (n === 1 ? " channel" : " channels"), kind: "l", epg: true, local: true, load: function () {
       var l = top.slice();
       if (n > l.length || sub === "PPV & Events" || sub === "Local") l.push({ t: "tile", id: id, n: "See all " + n, sub: adj + " " + lbl + " \u203A", col: "#2a3a8c" });

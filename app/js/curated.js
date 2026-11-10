@@ -109,11 +109,13 @@ function curatedRows(type) {
       return sc.map(function (x) { return x.it; });
     });
   }) });
-  var last = null; for (var i = 0; i < PD.hist.length; i++) if (PD.hist[i].it.t === type && PD.hist[i].it.c) { last = PD.hist[i]; break; }
+  var last = null, an = typeof whAnchor === "function" ? whAnchor(type === "movies" ? "movie" : "show") : null, fin = typeof whFinished === "function" ? whFinished() : {};
+  if (an && an.it && an.it.c) last = { k: an.k, it: an.it };
+  else for (var i = 0; i < PD.hist.length; i++) if (PD.hist[i].it.t === type && PD.hist[i].it.c) { last = PD.hist[i]; break; }
   if (last && catById[type + ":" + last.it.c]) {
     var lc = catById[type + ":" + last.it.c];
     rows.push({ title: "Because You Watched " + last.it.n, load: wrap(function () {
-      return settle(loadCat(lc)).then(function (items) { return items.filter(function (x) { return itemKey(x) !== last.k; }).sort(byRating); });
+      return settle(loadCat(lc)).then(function (items) { return items.filter(function (x) { return itemKey(x) !== last.k && !fin[itemKey(x)]; }).sort(byRating); });
     }) });
   }
   rows.push({ title: "Trending Now", load: wrap(function () {

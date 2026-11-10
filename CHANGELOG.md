@@ -2,6 +2,9 @@
 
 All dates 2026. NickFlix is a Netflix-style front end for an Xtream-codes IPTV account on Samsung Tizen TVs.
 
+## 4.3
+- Per-profile watch history (`wh.js`: 150 entries, 14-day half-life, finished items weighted up, quick quits counted against), "Because you watched" and "Top picks" rows, taste-based ordering.
+
 ## 4.2 / 4.1
 - British and American pages show only that country's channels.
 - Original intro animation with generated sound (any key skips; can be turned off in Settings).
