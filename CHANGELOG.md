@@ -2,7 +2,13 @@
 
 All dates 2026. NickFlix is a Netflix-style front end for an Xtream-codes IPTV account on Samsung Tizen TVs.
 
-## 4.7 (unreleased)
+## 4.8 (unreleased)
+- **Cinematic intro** (`js/intro.js`, ~4.4 s, any key skips, Settings toggle unchanged): an anamorphic light streak ignites, then the logo slams in from depth as solid extruded 3D letters ("ta"). A second, bigger hit ("dum") brings a flash, a shockwave ring, a glow bloom, a horizontal lens flare and a light sweep across the letters. The logo slowly pushes in while light ribbons rise behind it, then the camera dives through the logo into a 3D tunnel of colored light ribbons rushing past.
+- **New generated sound** (Web Audio, nothing sampled): rumble swell, then a tuned "ta" hit and a deep "dum" (sub drop, distorted body, D-major add9 chord bloom with a filter swell), rising bell shimmer, and a panning whoosh with a rising tone under the ribbon dive. `introSynth(ctx, dest, t0)` also renders offline.
+- Opacity is only animated on flat wrappers, never on `preserve-3d` elements, so Chromium keeps real depth.
+- `tools/render_intro.py` renders a 1080p30 preview MP4 with audio (frame-exact via the Web Animations API, plus OfflineAudioContext).
+
+## 4.7
 - **Playback resilience:** bigger AVPlay buffers (`setBufferingParam` / `setTimeoutForBuffering`) with a Normal / Large / Maximum setting; live auto-reconnect on error, stall, frozen clock or provider-side stream end, with back-off (1 s up to 15 s), a "Reconnecting…" badge and an HLS↔TS switch after 3 failures; clean stop and a 1.2 s gap before reopening (1-connection accounts); debounced channel zapping; 25 s prepare timeout; VOD resumes at the last position after an error.
 - **Background fetches paused while playing** (EPG queue only for the channel on screen, NAS refresh/matching deferred).
 - **Diagnostics:** last 120 playback events kept on the TV (`nf_pdiag`), 24 h summary in Settings.

@@ -27,6 +27,7 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
 - **v4.5** Curated documentary and British collections; Sports "Live now" and "Coming up".
 - **v4.6** My Media: NAS library with posters, genres, series grouping, auto-update, Cinemeta matching on the TV.
 - **v4.7** Buffering/reconnect overhaul, playback diagnostics, Netflix-style scrubbing, 127 avatars, secrets moved to `config.js`.
+- **v4.8** Cinematic intro: an extruded 3D logo slams in with a two-hit generated "ta-dum", then a flash, shockwave and light sweep, then a dive through a tunnel of light ribbons (`tools/render_intro.py` renders a preview MP4).
 
 ## Architecture
 `app/` is the Tizen web app (load order is the `<script>` order in `index.html`):

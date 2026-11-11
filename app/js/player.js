@@ -1,4 +1,4 @@
-/* ================= NickFlix 4.7 — resilient playback =================
+/* ================= NickFlix 4.7+ — resilient playback =================
    - bigger AVPlay buffers (setBufferingParam / setTimeoutForBuffering), user-selectable
    - live: auto-reconnect on error / stall / stream-end with backoff, same channel, "Reconnecting…" badge
    - HLS/TS preference (Auto remembers per channel what worked), switch format after repeated failures
@@ -220,5 +220,5 @@ stHome = function (inner, ln) {
   l2.appendChild(b2); inner.appendChild(l2); lnAdd(ln, l2, [b2]);
   var s = pdiagSummary(24);
   inner.appendChild(ce("div", "s-note", "Last 24 h on this TV: " + s.stall + " stalls, " + s.rc + " auto-reconnects, " + s.end + " provider drops, " + s.fail + " gave up"));
-  inner.appendChild(ce("div", "s-note", "NickFlix 4.7"));
+  inner.appendChild(ce("div", "s-note", "NickFlix 4.8"));
 };
