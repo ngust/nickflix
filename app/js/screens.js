@@ -331,7 +331,7 @@ function chooseProfile(id) {
 /* ================= profile editor ================= */
 var PE = { id: "pedit", ln: null, p: null, name: "", av: 0 };
 function openEditor(p) {
-  PE.p = p; PE.name = p ? p.name : ""; PE.av = p ? p.av : (profiles.list.length * 5) % AVATARS;
+  PE.p = p; PE.name = p ? p.name : ""; PE.av = p ? p.av : (profiles.list.length * 5) % 16;
   ovOpen(PE); renderEditor();
   PE.ln.li = 0; PE.ln.ci = 0; lnFocus(PE.ln);
 }
@@ -352,15 +352,11 @@ function renderEditor(keepKey) {
     if (ch === "DEL") PE.name = PE.name.slice(0, -1); else if (ch === "CLR") PE.name = ""; else if (PE.name.length < 14) PE.name += (PE.name && PE.name.slice(-1) !== " " ? ch.toLowerCase() : ch);
     showName();
   });
-  for (var i = 0; i < AVATARS; i += 4) {
-    var r = ce("div", "pe-arow"), its = [];
-    for (var j = i; j < i + 4; j++) (function (n) {
-      var a = ce("div", "pe-av" + (n === PE.av ? " sel" : "")); var im = document.createElement("img"); im.src = avatarSrc(n); a.appendChild(im);
-      a._act = function () { PE.av = n; big.src = avatarSrc(n); Array.prototype.forEach.call(avs.querySelectorAll(".pe-av"), function (x, xi) { x.classList.toggle("sel", xi === n); }); };
-      a._pane = 1; a._col = n % 4; r.appendChild(a); its.push(a);
-    })(j);
-    avs.appendChild(r); lnAdd(aln, r, its);
-  }
+  // 4.7: one "Choose avatar" tile here; the full picker (category rows, 120+ avatars) opens on OK
+  var arow = ce("div", "pe-arow"), ab = ce("div", "pe-avbtn");
+  var abi = document.createElement("img"); abi.src = avatarSrc(PE.av); ab.appendChild(abi);
+  var abt = ce("div", "pe-avbtn-t"); abt.appendChild(ce("div", "", "Choose avatar \u203A")); abt.appendChild(ce("div", "pe-avbtn-s", AVATARS + " to pick from: smileys, animals, sports, Yukon, food, space, monsters, flags, letters")); ab.appendChild(abt);
+  ab._act = function () { openAvPicker(); }; ab._pane = 1; arow.appendChild(ab); avs.appendChild(arow); lnAdd(aln, arow, [ab]);
   for (var L = 0; L < Math.max(kln.lines.length, aln.lines.length); L++) {
     var kl = kln.lines[L], al = aln.lines[L];
     lnAdd(ln, kl ? kl.el : al.el, (kl ? kl.items : []).concat(al ? al.items : []));
@@ -382,6 +378,60 @@ function saveEditor() {
   ovClose(PE); WH.manage = false; renderWho(PE.p ? PE.p.id : PE.newId);
 }
 PE.key = function (k) { if (k === "back") { ovClose(PE); renderWho(); return; } lnKey(PE.ln, k); };
+
+/* ================= avatar picker (4.7) ================= */
+var AP = { id: "avpick", r: 0, c: 0, rows: [] };
+function openAvPicker() {
+  AP.rows = (typeof AV_CATS !== "undefined" ? AV_CATS : [{ t: "Avatars", ids: Array.apply(null, Array(AVATARS)).map(function (_, i) { return i; }) }]);
+  AP.r = 0; AP.c = 0;
+  AP.rows.forEach(function (row, ri) { var ci = row.ids.indexOf(+PE.av); if (ci >= 0) { AP.r = ri; AP.c = ci; } });
+  ovOpen(AP); renderAvPicker();
+}
+function renderAvPicker() {
+  var box = $("avpick-inner"); box.textContent = "";
+  box.appendChild(ce("div", "ap-h", "Choose an avatar" + (PE.name ? " for " + PE.name : "")));
+  box.appendChild(ce("div", "ap-sub", "\u25B2 \u25BC  category      \u25C0 \u25B6  browse      OK  pick      BACK  cancel"));
+  var view = ce("div", "ap-view"), wrap = ce("div", "ap-rows"); wrap.id = "ap-rows"; view.appendChild(wrap); box.appendChild(view);
+  AP.rows.forEach(function (row, ri) {
+    var r = ce("div", "ap-row"); r.appendChild(ce("div", "ap-rt", row.t + "  \u00b7  " + row.ids.length));
+    var tr = ce("div", "ap-track");
+    row.ids.forEach(function (id, ci) {
+      var a = ce("div", "ap-av" + (id === +PE.av ? " sel" : "")); a._id = id;
+      var im = document.createElement("img"); im.src = avatarSrc(id); im.alt = ""; a.appendChild(im);
+      tr.appendChild(a);
+    });
+    r.appendChild(tr); wrap.appendChild(r);
+  });
+  apFocus();
+}
+function apFocus() {
+  var rows = $("ap-rows").children, PITCH = 162, VIS = 10;
+  for (var ri = 0; ri < rows.length; ri++) {
+    var tr = rows[ri].children[1], n = tr.children.length, c = ri === AP.r ? AP.c : (rows[ri]._c || 0);
+    var off = Math.max(0, Math.min(c - 4, n - VIS)); if (ri === AP.r) rows[ri]._c = AP.c;
+    tr.style.transform = "translateX(" + (-off * PITCH) + "px)";
+    for (var ci = 0; ci < n; ci++) tr.children[ci].classList.toggle("f", ri === AP.r && ci === AP.c);
+    rows[ri].classList.toggle("cur", ri === AP.r);
+  }
+  $("ap-rows").style.transform = "translateY(" + (-Math.max(0, AP.r - 1) * 232) + "px)";
+  var id = AP.rows[AP.r].ids[AP.c], nm = (typeof AV_NAMES !== "undefined" && AV_NAMES[id]) || "";
+  var sub = $("avpick-inner").getElementsByClassName("ap-sub")[0]; if (sub) sub.textContent = (nm ? nm + "      " : "") + "\u25B2 \u25BC  category      \u25C0 \u25B6  browse      OK  pick      BACK  cancel";
+}
+AP.refocus = function () { apFocus(); };
+AP.key = function (k) {
+  var row = AP.rows[AP.r];
+  if (k === "back") { ovClose(AP); lnFocus(PE.ln); return; }
+  if (k === "left") { if (AP.c > 0) AP.c--; }
+  else if (k === "right") { if (AP.c < row.ids.length - 1) AP.c++; }
+  else if (k === "up" || k === "down") {
+    var nr = AP.r + (k === "up" ? -1 : 1); if (nr < 0 || nr >= AP.rows.length) return;
+    var rows = $("ap-rows").children; rows[AP.r]._c = AP.c;
+    AP.r = nr; AP.c = Math.min(rows[nr]._c || 0, AP.rows[nr].ids.length - 1);
+  } else if (k === "enter") {
+    PE.av = row.ids[AP.c]; ovClose(AP); renderEditor(); lnFocus(PE.ln); toast("Avatar picked \u2013 press Save to keep it"); return;
+  }
+  apFocus();
+};
 
 /* ================= profile page + stats ================= */
 var PS = { id: "profile", ln: null };

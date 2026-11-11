@@ -6,7 +6,8 @@ function lsGet(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.pa
 function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
 
 /* ---------- account (global, shared by all profiles) ---------- */
-var ACC_DEF = { server: "http://your-provider.example.com:80", username: "YOUR_USERNAME", password: "YOUR_PASSWORD" };
+var NFC = (typeof NF_CONFIG === "object" && NF_CONFIG) || {};
+var ACC_DEF = { server: NFC.server || "", username: NFC.username || "", password: NFC.password || "" };   // set in js/config.js (see config.example.js)
 var account = (function () {
   var a = lsGet("nf_account", null);
   if (!a) {

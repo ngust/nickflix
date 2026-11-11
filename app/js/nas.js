@@ -7,7 +7,8 @@
      (no thumbnails, no watch history). Explicit file names are never listed.
    - Played with AVPlay through the normal player (resume, per-profile history, learning). Read-only on the NAS. */
 "use strict";
-var NAS_BASE = (function () { try { return localStorage.getItem("nf_nas_base") || "http://192.168.1.50:9050"; } catch (e) { return "http://192.168.1.50:9050"; } })();
+var NAS_DEF = (typeof NF_CONFIG === "object" && NF_CONFIG && NF_CONFIG.nasBase) || "";
+var NAS_BASE = (function () { try { return localStorage.getItem("nf_nas_base") || NAS_DEF; } catch (e) { return NAS_DEF; } })();
 var NAS_ALL = "0$3$27", NAS_CM = "https://v3-cinemeta.strem.io";
 var NAS = { raw: null, lib: null, ts: 0, loading: null, meta: {}, seen: {}, err: "", hidden: 0, q: [], qa: 0, qdone: null, changed: false };
 var NAS_XXX = /\bxxx\b|porn|brazzers|digital ?playground|naughty ?america|bang ?bros|reality ?kings|onlyfans|\bnsfw\b|blacked|tushy|sex ?tape|hentai|\bmilf\b/i;
