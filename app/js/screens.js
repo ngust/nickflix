@@ -82,6 +82,8 @@ function stHome(inner, ln) {
   navBtn(inner, ln, "\uD83D\uDD11  Account", "Your IPTV provider login (shared by all profiles).", function () { stPage("account"); });
   inner.appendChild(ce("div", "s-sec", "App"));
   toggleLine("tog:intro", "Intro animation", "Play the NickFlix intro with sound when the app starts (all profiles). Any key skips it.", function () { return introEnabled(); }, function (v) { try { localStorage.setItem("nf_intro", v ? "1" : "0"); } catch (e) {} });
+  toggleLine("tog:mini", "Intro before shows", "A 2-second NickFlix sting before movies, episodes and My Media (all profiles). It plays while the video loads, so it adds no wait. Any key skips it.", function () { return miniEnabled(); }, function (v) { try { localStorage.setItem("nf_mini", v ? "1" : "0"); } catch (e) {} });
+  toggleLine("tog:minilive", "Intro before live channels too", "Also play the sting when you open a live channel from a row or the guide (never when flipping channels up/down).", function () { return miniLiveEnabled(); }, function (v) { try { localStorage.setItem("nf_mini_live", v ? "1" : "0"); } catch (e) {} });
   inner.appendChild(ce("div", "s-note", "NickFlix 4.5"));
 }
 function liveCodes() {

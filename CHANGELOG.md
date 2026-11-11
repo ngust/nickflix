@@ -2,7 +2,13 @@
 
 All dates 2026. NickFlix is a Netflix-style front end for an Xtream-codes IPTV account on Samsung Tizen TVs.
 
-## 4.8 (unreleased)
+## 4.9 (unreleased)
+- **Mini intro before shows** (`js/mini.js`): a 2.2 s sting in the 4.8 style (logo slams in from depth, a hit with flash and shockwave, a quick dive through light ribbons) with a short generated sound. It plays on top while AVPlay prepares underneath, so it adds no wait. Any key skips it (the key is swallowed). Plays for movies, episodes and My Media. Live channels are off by default (separate toggle) and it never plays on channel up/down or reconnects. Settings > App: "Intro before shows" (default ON) and "Intro before live channels too" (default OFF). Both are global.
+- **Motorsports** (`js/motor.js`): F1, NASCAR Cup and IndyCar from ESPN racing calendars and scoreboards (live session detection, broadcasters). MotoGP, WRC, WEC and World Rallycross from TheSportsDB's free public key. Guide scan of the main sports and motorsport channels for live races. The Sports page order is now NHL -> MTB -> Motorsports (live now & coming up, **Live rally racing**, Rally coming up, Motorsport channels) -> Live now -> the rest. Events open the channel picker (series names, GP/rally name, broadcaster, date).
+- **Live Events banner: more events, ranked by significance.** Numbered UFC, the Super Bowl, the Olympics (when provider Olympic channels exist) and the World Cup Final rank highest. Then provider PPV fights, the Stanley Cup Final, World Series, NBA Finals and World Cup, the Indy 500, Le Mans and the Daytona 500, the NFL/NBA/MLB/NHL playoffs, F1 Grands Prix, UFC Fight Nights, boxing (TheSportsDB), NASCAR/IndyCar/MotoGP and WRC. Top events show up to 4 days ahead, smaller ones 1.5-2 days. Up to 16 events, deduplicated.
+- `tools/render_mini.py` renders the mini intro preview.
+
+## 4.8
 - **Cinematic intro** (`js/intro.js`, ~4.4 s, any key skips, Settings toggle unchanged): an anamorphic light streak ignites, then the logo slams in from depth as solid extruded 3D letters ("ta"). A second, bigger hit ("dum") brings a flash, a shockwave ring, a glow bloom, a horizontal lens flare and a light sweep across the letters. The logo slowly pushes in while light ribbons rise behind it, then the camera dives through the logo into a 3D tunnel of colored light ribbons rushing past.
 - **New generated sound** (Web Audio, nothing sampled): rumble swell, then a tuned "ta" hit and a deep "dum" (sub drop, distorted body, D-major add9 chord bloom with a filter swell), rising bell shimmer, and a panning whoosh with a rising tone under the ribbon dive. `introSynth(ctx, dest, t0)` also renders offline.
 - Opacity is only animated on flat wrappers, never on `preserve-3d` elements, so Chromium keeps real depth.

@@ -28,6 +28,7 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
 - **v4.6** My Media: NAS library with posters, genres, series grouping, auto-update, Cinemeta matching on the TV.
 - **v4.7** Buffering/reconnect overhaul, playback diagnostics, Netflix-style scrubbing, 127 avatars, secrets moved to `config.js`.
 - **v4.8** Cinematic intro: an extruded 3D logo slams in with a two-hit generated "ta-dum", then a flash, shockwave and light sweep, then a dive through a tunnel of light ribbons (`tools/render_intro.py` renders a preview MP4).
+- **v4.9** Mini intro before shows (toggle), Motorsports section + Live rally racing row, Live Events ranked by significance with many more sources (ESPN + TheSportsDB).
 
 ## Architecture
 `app/` is the Tizen web app (load order is the `<script>` order in `index.html`):
@@ -37,6 +38,8 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
 | `js/config.js` | **Your** provider login + NAS address (not in git; copy `config.example.js`) |
 | `js/core.js` | localStorage helpers, account, Xtream API (`player_api.php`), category loading |
 | `js/intro.js` | Intro animation + generated sound |
+| `js/mini.js` | Mini intro before shows |
+| `js/motor.js` | Motorsports rows, rally row, significance-ranked Live Events |
 | `js/logos_idx.js`, `js/logos.js` | Channel-logo index and logo plates |
 | `js/learn.js`, `js/wh.js` | Per-profile learning and watch history |
 | `js/profiles.js`, `js/avatars.js` | Profiles; avatar catalogue (generated) |
