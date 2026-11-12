@@ -23,8 +23,10 @@ var PB = {
   },
   ORDER: ["stable", "max", "normal", "large"], DEF: "stable",
   gen: 0, tries: 0, lastClose: 0, lastT: -1, lastMove: 0, bufAt: 0, wdT: null, rcT: null, zapT: null, prepT: null, rfT: null, okFmt: {}, maxTries: 8, GAP: 1200,
-  sess: null, fs: null, fsDirty: 0
+  sess: null, fs: null, fsDirty: 0, graceUntil: 0, bufCounted: false
 };
+/* buffering right after start or after a seek (resume, jumps, scrubbing) is expected - not a stall */
+function pbGrace(ms) { PB.graceUntil = Math.max(PB.graceUntil, Date.now() + (ms || 12000)); }
 function pbCfg() {
   var c = lsGet("nf_play", null) || {};
   var buf = PB.BUF[c.buf] ? c.buf : PB.DEF;
@@ -144,10 +146,10 @@ function pbOpen(url, gen) {
   P.curURL = url; PB.lastT = -1; PB.lastMove = Date.now(); PB.bufAt = 0;
   if (!avOK()) {   // browser / emulator fallback: keep the 4.6 HTML5 path, add stall handling
     P.useAV = false; var v = $("video"); v.classList.remove("off");
-    v.onplaying = function () { if (gen !== PB.gen) return; P.started = true; PB.tries = 0; if (!PB.rfT) pbBadge(""); osd("", null, false); };
+    v.onplaying = function () { if (gen !== PB.gen) return; if (!P.started) pbGrace(12000); P.started = true; PB.tries = 0; if (!PB.rfT) pbBadge(""); osd("", null, false); };
     v.onloadedmetadata = function () { if (resume > 0) { try { v.currentTime = resume / 1000; } catch (e5) {} resume = 0; } };
-    v.onwaiting = function () { if (gen !== PB.gen) return; PB.bufAt = PB.bufAt || Date.now(); if (P.started) pbStall(gen); osd("Buffering\u2026", null, true); };
-    v.oncanplaythrough = function () { if (gen !== PB.gen || !PB.bufAt) return; PB.bufAt = 0; pbStallEnd(gen); };
+    v.onwaiting = function () { if (gen !== PB.gen) return; PB.bufAt = PB.bufAt || Date.now(); if (P.started && Date.now() > PB.graceUntil && !PB.bufCounted) { PB.bufCounted = true; pbStall(gen); } osd("Buffering\u2026", null, true); };
+    v.oncanplaythrough = function () { if (gen !== PB.gen || !PB.bufAt) return; PB.bufAt = 0; var c = PB.bufCounted; PB.bufCounted = false; if (c) pbStallEnd(gen); };
     v.onerror = function () { if (gen === PB.gen) pbTrouble("error", "video error"); };
     v.onended = function () { if (gen !== PB.gen) return; if (live) pbTrouble("ended-live"); else onEnded(); };
     v.src = url; var pr; try { pr = v.play(); } catch (e2) {} if (pr && pr.catch) pr.catch(function () {});
@@ -158,9 +160,9 @@ function pbOpen(url, gen) {
   try {
     av.open(url);
     av.setListener({
-      onbufferingstart: function () { if (gen !== PB.gen) return; PB.bufAt = Date.now(); if (P.started) { pdiag("stall"); pbStall(gen); osd("Refilling buffer\u2026", null, true); } },
+      onbufferingstart: function () { if (gen !== PB.gen) return; PB.bufAt = Date.now(); PB.bufCounted = false; if (P.started) { if (Date.now() > PB.graceUntil) { PB.bufCounted = true; pdiag("stall"); pbStall(gen); } osd("Refilling buffer\u2026", null, true); } },
       onbufferingprogress: function (p) { if (gen !== PB.gen) return; if (P.started) osd("Refilling buffer " + p + "%", null, true); else if (!PB.tries) osd("Building buffer " + p + "%", live ? "Starting " + PB.BUF[pbCfg().buf].lag + " behind live for smoother playback" : null, true); },
-      onbufferingcomplete: function () { if (gen !== PB.gen) return; var was = PB.bufAt && P.started; if (was) pdiag("stall-end", Math.round((Date.now() - PB.bufAt) / 1000) + "s"); PB.bufAt = 0; PB.lastMove = Date.now(); osd("", null, false); if (was) pbStallEnd(gen); },
+      onbufferingcomplete: function () { if (gen !== PB.gen) return; var was = PB.bufAt && P.started && PB.bufCounted; if (was) pdiag("stall-end", Math.round((Date.now() - PB.bufAt) / 1000) + "s"); PB.bufAt = 0; PB.bufCounted = false; PB.lastMove = Date.now(); osd("", null, false); if (was) pbStallEnd(gen); },
       onstreamcompleted: function () { if (gen !== PB.gen) return; if (live) pbTrouble("ended-live"); else onEnded(); },
       oncurrentplaytime: function () {},
       onerror: function (e) { if (gen === PB.gen) pbTrouble("error", String(e)); },
@@ -177,7 +179,7 @@ function pbOpen(url, gen) {
     av.prepareAsync(function () {
       if (gen !== PB.gen) return; clearTimeout(PB.prepT);
       try {
-        av.play(); P.started = true; PB.lastMove = Date.now();
+        av.play(); P.started = true; PB.lastMove = Date.now(); pbGrace(resume > 0 ? 15000 : 12000);
         if (live) { var f = pbFmtOf(url); if (PB.okFmt[P.item.id] !== f) { PB.okFmt[P.item.id] = f; lsSet("nf_okfmt", PB.okFmt); } }
         if (PB.tries) { pdiag("recovered", "after " + PB.tries); osd("Reconnected", null, false); } else if (resume > 0) {} else osd("", null, false);
         PB.tries = 0; pbBadge(""); pbProbe(av, url);
@@ -401,6 +403,8 @@ zap = function (d) {
   }, 700);
   var row = V.rows[V.r]; if (row && row.items === P.list) { row.col = n; row.off = Math.max(0, Math.min(n - 1, row.items.length - row.K.vis + 1)); }
 };
+var _seek410 = seek;
+seek = function (ms) { pbGrace(12000); if (PB.rfT) pbRefillEnd(true); return _seek410(ms); };
 var _togglePause46 = togglePause;
 togglePause = function () {
   if (P.dead) { P.dead = false; PB.tries = 0; P.ui = 0; pbBadge("Reconnecting\u2026"); playURL(P.urls[0]); return; }

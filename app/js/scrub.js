@@ -81,7 +81,7 @@ function scCommit() {
     if (P.useAV) webapis.avplay.seekTo(Math.round(pos), function () {}, function () {});
     else $("video").currentTime = pos / 1000;
   } catch (e) {}
-  try { PB.lastMove = Date.now(); PB.lastT = -1; } catch (e2) {}
+  try { PB.lastMove = Date.now(); PB.lastT = -1; if (typeof pbGrace === "function") { pbGrace(12000); if (PB.rfT) pbRefillEnd(true); } } catch (e2) {}
   P.resume = pos;
   osd(scFmt(pos) + " / " + scFmt(SC.dur), null, false);
 }
