@@ -29,6 +29,7 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
 - **v4.7** Buffering/reconnect overhaul, playback diagnostics, Netflix-style scrubbing, 127 avatars, secrets moved to `config.js`.
 - **v4.8** Cinematic intro: an extruded 3D logo slams in with a two-hit generated "ta-dum", then a flash, shockwave and light sweep, then a dive through a tunnel of light ribbons (`tools/render_intro.py` renders a preview MP4).
 - **v4.9** Mini intro before shows (toggle), Motorsports section + Live rally racing row, Live Events ranked by significance with many more sources (ESPN + TheSportsDB).
+- **v4.10** Stability for a distant/droppy provider: Extra-stable default buffer (~15–20 s behind live), pause-and-refill, automatic quality/format step-down, format learning; optional home buffering proxy for a NAS (`proxy/`).
 
 ## Architecture
 `app/` is the Tizen web app (load order is the `<script>` order in `index.html`):
@@ -51,7 +52,8 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
 | `js/sportslive.js` | Live now / Coming up sports rows (NHL + ESPN) |
 | `js/nas_seed.js`, `js/nas.js` | My Media (Twonky JSON feed, title cleaning, Cinemeta matching) |
 | `js/screens.js` | Settings, profile picker/editor, avatar picker, keys, boot |
-| `js/player.js` | 4.7 playback layer: buffers, reconnect, watchdog, diagnostics, Settings › Playback |
+| `js/player.js` | Playback layer (4.7 + 4.10): buffer profiles, pause-and-refill, step-down, reconnect, watchdog, format learning, home-proxy routing, diagnostics, Settings › Playback |
+| `proxy/` | `nfproxy.py` home buffering proxy for a NAS (Docker / Container Station or native), see `proxy/README.md` |
 | `js/scrub.js` | 4.7 Netflix-style scrubbing and media-key registration |
 
 Tools: `tools/build.py` (package), `tools/deploy.ps1` (sign + install with Tizen CLI), `tools/mock.py`

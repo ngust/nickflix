@@ -6,5 +6,6 @@ var NF_CONFIG = {
   username: "YOUR_USERNAME",
   password: "YOUR_PASSWORD",
   nasBase: "http://192.168.1.50:9050",              // Twonky / DLNA server for "My Media" (optional, "" to disable)
-  extraOrigins: []                                  // extra stream/redirect hosts your provider uses, e.g. ["http://cdn.example.net"]
+  extraOrigins: [],                                 // extra stream/redirect hosts your provider uses, e.g. ["http://cdn.example.net"]
+  proxyUrls: []                                     // optional home buffering proxy (proxy/nfproxy.py), e.g. ["http://192.168.1.50:8765"]; turn on in Settings > Playback
 };

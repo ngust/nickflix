@@ -24,6 +24,8 @@ def origin(u):
 origins = [origin(val('server')), origin(val('nasBase'))]
 m = re.search(r'extraOrigins\s*:\s*\[([^\]]*)\]', cfg)
 if m: origins += [origin(x) for x in re.findall(r'"([^"]+)"', m.group(1))]
+m = re.search(r'proxyUrls\s*:\s*\[([^\]]*)\]', cfg)   # 4.10 home buffering proxy (nfproxy)
+if m: origins += [origin(x) for x in re.findall(r'"([^"]+)"', m.group(1))]
 origins = [o for i, o in enumerate(origins) if o and o not in origins[:i]]
 dst = os.path.join(a.out, 'app')
 shutil.rmtree(dst, ignore_errors=True); shutil.copytree(os.path.join(ROOT, 'app'), dst)

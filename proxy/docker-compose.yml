@@ -1,0 +1,14 @@
+# Container Station > Applications > Create, paste this, or: docker compose up -d --build  (in this folder)
+services:
+  nfproxy:
+    build: .
+    image: nickflix/nfproxy:4.10
+    container_name: nfproxy
+    restart: unless-stopped
+    env_file: nfproxy.env          # NF_UPSTREAM lives here (provider address) - keep this file on the NAS only
+    ports:
+      - "8765:8765"
+    mem_limit: 320m                # ring 96 MB + VOD read-ahead 160 MB + Python
+    logging:
+      driver: json-file
+      options: { max-size: "5m", max-file: "2" }
