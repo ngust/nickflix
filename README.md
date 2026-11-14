@@ -14,6 +14,8 @@ beyond copying files.
 |---|---|---|
 | ![](screenshots/profiles.png) | ![](screenshots/avatar-picker.png) | ![](screenshots/scrubbing.png) |
 
+![Settings (4.11)](screenshots/settings.png)
+
 ## Features (by version)
 See [CHANGELOG.md](CHANGELOG.md) for details.
 
@@ -30,6 +32,7 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
 - **v4.8** Cinematic intro: an extruded 3D logo slams in with a two-hit generated "ta-dum", then a flash, shockwave and light sweep, then a dive through a tunnel of light ribbons (`tools/render_intro.py` renders a preview MP4).
 - **v4.9** Mini intro before shows (toggle), Motorsports section + Live rally racing row, Live Events ranked by significance with many more sources (ESPN + TheSportsDB).
 - **v4.10** Stability for a distant/droppy provider: Extra-stable default buffer (~15–20 s behind live), pause-and-refill, automatic quality/format step-down, format learning; optional home buffering proxy for a NAS (`proxy/`).
+- **v4.11** Settings redesign (category list + detail pane), 235 avatars in 20 groups with a categorized picker, a daily "Today's picks" row per section, and a 🎰 Surprise me slot machine (optional).
 
 ## Architecture
 `app/` is the Tizen web app (load order is the `<script>` order in `index.html`):
@@ -55,9 +58,10 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
 | `js/player.js` | Playback layer (4.7 + 4.10): buffer profiles, pause-and-refill, step-down, reconnect, watchdog, format learning, home-proxy routing, diagnostics, Settings › Playback |
 | `proxy/` | `nfproxy.py` home buffering proxy for a NAS (Docker / Container Station or native), see `proxy/README.md` |
 | `js/scrub.js` | 4.7 Netflix-style scrubbing and media-key registration |
+| `js/picks.js` | 4.11 Today's picks rows and the Surprise me slot machine |
 
 Tools: `tools/build.py` (package), `tools/deploy.ps1` (sign + install with Tizen CLI), `tools/mock.py`
-(local IPTV/NAS mock), `tools/mkav.py` / `tools/mkav2.py` (avatars), `tools/mkart.py` (logo/icon).
+(local IPTV/NAS mock), `tools/mkav.py` / `tools/mkav2.py` / `tools/mkav3.py` (avatars), `tools/mkart.py` (logo/icon).
 Tests (`tests/`) are Playwright scripts that drive the app in desktop Chrome against the mock, with a fake
 `webapis.avplay` where needed (`tests/tpb.py` = playback/reconnect/scrub, `tests/tav.py` = avatar picker).
 

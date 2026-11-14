@@ -83,7 +83,7 @@ function pxCheck(cb) {
   setTimeout(function () { fin(false); }, 2500);
   try { fetch(url + "/health", { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) { fin(String(t).trim() === "ok"); }, function () { fin(false); }); } catch (e) { fin(false); }
 }
-function pxRerender(key) { try { if (OV.top() === ST && ST.page === "home") { var li = ST.ln ? ST.ln.li : 0, ci = ST.ln ? ST.ln.ci : 0; renderSettings(key); if (!key && ST.ln) { ST.ln.li = li; ST.ln.ci = ci; lnFocus(ST.ln); } } } catch (e) {} }
+function pxRerender(key) { try { if (OV.top() === ST && stCur() === "playback") { var li = ST.ln ? ST.ln.li : 0, ci = ST.ln ? ST.ln.ci : 0; renderSettings(key); if (!key && ST.ln) { ST.ln.li = li; ST.ln.ci = ci; if (ST.zone === "pane") lnFocus(ST.ln); } } } catch (e) {} }
 function pxActive() { var c = pxCfg(); return c.on && !(PX.ok === false && PX.url === c.url.replace(/\/$/, "")); }
 function pxRewrite(url) {
   if (!pxActive()) return url;
@@ -437,12 +437,10 @@ if (typeof nasPump === "function") {
 function pbResumeBackground() { if (P.open) return; try { epgPump(); } catch (e) {} try { if (typeof nasPump === "function") nasPump(); } catch (e2) {} }
 
 /* ---------- Settings: Playback section ---------- */
-var _stHome46 = stHome;
-stHome = function (inner, ln) {
-  _stHome46(inner, ln);
-  var notes = inner.getElementsByClassName("s-note"), last = notes[notes.length - 1];
-  if (last) last.parentNode.removeChild(last);
-  inner.appendChild(ce("div", "s-sec", "Playback (this TV)"));
+/* 4.11: its own Settings category (was appended to the old single Settings page) */
+function stPlayback(inner, ln) {
+  stHead(inner, "Playback", "These settings are for this TV and shared by every profile.");
+  inner.appendChild(ce("div", "s-sec", "Buffering & stream format"));
   var c = pbCfg();
   var BL = {
     stable: "Extra-stable (default) \u2013 plays a little behind live, rides out provider hiccups",
@@ -482,5 +480,4 @@ stHome = function (inner, ln) {
   inner.appendChild(ce("div", "s-note", "If stalls keep happening on a channel, NickFlix steps down by itself for the rest of that viewing: a lower bitrate if the provider offers one, then a lower-quality copy of the channel (e.g. HD instead of FHD), then the other stream format, then an even deeper buffer. It shows a short message when it does. Connection drops still reconnect automatically."));
   var s = pdiagSummary(24);
   inner.appendChild(ce("div", "s-note", "Last 24 h on this TV: " + s.stall + " stalls, " + s.refill + " buffer refills, " + s.rc + " auto-reconnects, " + s.down + " quality step-downs, " + s.end + " provider drops, " + s.fail + " gave up"));
-  inner.appendChild(ce("div", "s-note", "NickFlix 4.10"));
-};
+}

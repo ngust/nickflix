@@ -16,75 +16,180 @@ function setChip(c, on) { c.classList.toggle("on", on); var b = c.querySelector(
 function grid(inner, ln, list, perLine, mk) {
   var all = [];
   for (var i = 0; i < list.length; i += perLine) {
-    var l = ce("div", "s-line"), items = [];
+    var l = ce("div", "s-line sg" + perLine), items = [];
     list.slice(i, i + perLine).forEach(function (x) { var c = mk(x); l.appendChild(c); items.push(c); all.push(c); });
     inner.appendChild(l); lnAdd(ln, l, items, { keepCol: true });
   }
   return all;
 }
 
-/* ================= settings ================= */
-var ST = { id: "settings", ln: null, page: "home", stack: [], dirty: false, exp: {}, ctExp: {} };
+/* ================= settings (4.11: category list on the left, details on the right) ================= */
+var ST = { id: "settings", ln: null, cat: "profile", page: null, zone: "nav", stack: [], dirty: false, exp: {}, ctExp: {}, mem: {}, navEls: [] };
+var ST_CATS = [
+  { id: "profile", ic: "\uD83D\uDC64", t: "Profile", d: "Avatar, name, favourites, stats" },
+  { id: "content", ic: "\uD83D\uDEE1\uFE0F", t: "Content & filters", d: "Adult, Quebec, Movies & Shows" },
+  { id: "tv", ic: "\uD83D\uDCFA", t: "Live TV", d: "Channels, countries, extras" },
+  { id: "picks", ic: "\uD83C\uDFB0", t: "Picks & Surprise me", d: "Today's picks, slot machine" },
+  { id: "sports", ic: "\uD83C\uDFD2", t: "Sports & time", d: "NHL team, time zone" },
+  { id: "playback", ic: "\u25B6\uFE0F", t: "Playback", d: "Buffer, format, home proxy" },
+  { id: "app", ic: "\u2728", t: "App & intro", d: "Intro animations, about" },
+  { id: "account", ic: "\uD83D\uDD11", t: "Account", d: "Provider login" }
+];
+var ST_PAGE_CAT = { live: "tv", extra: "tv", vod: "content", fav: "profile" };
+var ST_PAGE_T = { live: "Live TV filters", extra: "Extra channels", vod: "Movies & Shows filters", fav: "Favourite categories" };
+function stCur() { return ST.page || ST.cat; }
+function stCatIdx(id) { for (var i = 0; i < ST_CATS.length; i++) if (ST_CATS[i].id === id) return i; return 0; }
 function openSettings() {
-  ST.dirty = false; ST.page = "home"; ST.stack = [];
+  ST.dirty = false; ST.page = null; ST.stack = []; ST.zone = "nav";
+  ST.cat = lsGet("nf_st_cat", null) || ST.cat || "profile"; if (!ST_CATS[stCatIdx(ST.cat)] || ST_CATS[stCatIdx(ST.cat)].id !== ST.cat) ST.cat = "profile";
   ovOpen(ST); renderSettings();
-  /* start on "Extra channels" so a stray OK press can never flip the adult / Quebec toggles */
-  if (ST.ln && ST.ln.lines.length > 2) { ST.ln.li = 2; ST.ln.ci = 0; lnFocus(ST.ln); }
 }
-function stPage(p) { ST.stack.push({ page: ST.page, li: ST.ln.li, ci: ST.ln.ci }); ST.page = p; renderSettings(); }
+function stPage(p) {
+  if (ST.ln) ST.stack.push({ page: ST.page, li: ST.ln.li, ci: ST.ln.ci });
+  if (!ST.page && ST_PAGE_CAT[p]) ST.cat = ST_PAGE_CAT[p];
+  ST.page = p; ST.zone = "pane"; renderSettings();
+}
 function stBack() {
   var a = document.activeElement; if (a && a.tagName === "INPUT") a.blur();
-  if (ST.stack.length) { var s = ST.stack.pop(); ST.page = s.page; renderSettings(); ST.ln.li = s.li; ST.ln.ci = s.ci; lnFocus(ST.ln); return; }
+  if (ST.stack.length) { var s = ST.stack.pop(); ST.page = s.page; ST.zone = "pane"; renderSettings("\u0000"); ST.ln.li = s.li; ST.ln.ci = s.ci; lnFocus(ST.ln); return; }
+  if (ST.zone === "pane") { stToNav(); return; }
   closeSettings();
 }
+function stToNav() {
+  if (!ST.page && ST.ln) ST.mem[ST.cat] = { li: ST.ln.li, ci: ST.ln.ci };
+  ST.page = null; ST.stack = []; ST.zone = "nav"; renderSettings("\u0000");
+}
+function stToPane() {
+  ST.zone = "pane";
+  var m = !ST.page && ST.mem[ST.cat];
+  if (m && ST.ln.lines[m.li]) { ST.ln.li = m.li; ST.ln.ci = m.ci; } else { ST.ln.li = 0; ST.ln.ci = 0; }
+  stNavMark(); lnFocus(ST.ln);
+}
 function closeSettings() {
+  if (!ST.page && ST.ln && ST.zone === "pane") ST.mem[ST.cat] = { li: ST.ln.li, ci: ST.ln.ci };
+  lsSet("nf_st_cat", ST.cat);
   ovClose(ST); savePD(true);
   if (ST.dirty) { poolMem = {}; buildView(V.view === "search" ? PD.st.view : V.view); if (V.view === "search") showSearch(); }
   V.zone = "nav"; V.navIdx = TAB_VIEWS.indexOf("settings"); applyFocus();
 }
+function stNavMark() {
+  ST.navEls.forEach(function (e, i) { var on = ST_CATS[i].id === ST.cat; e.classList.toggle("sel", on); });
+  if (ST.zone === "nav") setF(ST.navEls[stCatIdx(ST.cat)]);
+  var h = $("s2-hint"); if (h) h.textContent = ST.zone === "nav" ? "\u25B2\u25BC choose a section     \u25B6 or OK open     BACK close Settings" : (ST.page ? "BACK returns to " + ST_CATS[stCatIdx(ST.cat)].t : "\u25C0 or BACK returns to the list     OK change a setting");
+}
+function stShell() {
+  var inner = $("settings-inner");
+  if (inner._s2 && inner._s2.pf === PF) return inner._s2;
+  inner.textContent = ""; inner.style.transform = ""; inner.className = "s2";
+  var top = ce("div", "s2-top");
+  var logo = document.createElement("img"); logo.src = "img/logo.png"; logo.className = "s-logo"; top.appendChild(logo);
+  top.appendChild(ce("div", "s2-title", "Settings"));
+  top.appendChild(ce("div", "s2-hint")).id = "s2-hint";
+  var who = ce("div", "s-who"); var av = document.createElement("img"); av.src = avatarSrc(PF.av); who.appendChild(av); who.appendChild(ce("span", "", PF.name)); top.appendChild(who);
+  inner.appendChild(top);
+  var nav = ce("div", "s2-nav"); ST.navEls = [];
+  ST_CATS.forEach(function (c) {
+    var e = ce("div", "s2-cat"); e.appendChild(ce("span", "s2-ic", c.ic));
+    var tx = ce("span", "s2-ct"); tx.appendChild(ce("span", "s2-cn", c.t)); tx.appendChild(ce("span", "s2-cd", c.d)); e.appendChild(tx);
+    nav.appendChild(e); ST.navEls.push(e);
+  });
+  inner.appendChild(nav);
+  var pane = ce("div", "s2-pane"), pin = ce("div", "s2-pin"); pane.appendChild(pin); inner.appendChild(pane);
+  inner._s2 = { pf: PF, pin: pin, av: av, nm: who.lastChild };
+  return inner._s2;
+}
 function renderSettings(keepKey) {
-  var inner = $("settings-inner"); inner.textContent = ""; inner.style.transform = "";
-  var ln = ST.ln = LN(inner, 480);
-  var hdr = ce("div", "s-hdr");
-  var logo = document.createElement("img"); logo.src = "img/logo.png"; logo.className = "s-logo"; hdr.appendChild(logo);
-  var who = ce("div", "s-who"); var av = document.createElement("img"); av.src = avatarSrc(PF.av); who.appendChild(av); who.appendChild(ce("span", "", PF.name)); hdr.appendChild(who);
-  inner.appendChild(hdr);
-  ({ home: stHome, live: stLive, vod: stVod, account: stAccount, sports: stSports, extra: stExtra, fav: stFav })[ST.page](inner, ln);
-  if (keepKey && lnFind(ln, keepKey)) {} else if (!keepKey) { ln.li = 0; ln.ci = 0; }
-  lnFocus(ln);
-}
-function navBtn(inner, ln, title, desc, act) {
-  var l = ce("div", "s-line"), b = ce("div", "s-big");
-  b.appendChild(ce("div", "s-big-t", title)); b.appendChild(ce("div", "s-big-d", desc));
-  b._act = act; l.appendChild(b); inner.appendChild(l); lnAdd(ln, l, [b]); return b;
-}
-function stHome(inner, ln) {
-  inner.appendChild(ce("div", "s-h1", "Settings"));
-  inner.appendChild(ce("div", "s-sub", "Filters are saved per profile (" + PF.name + ") and applied when you press BACK."));
-  var lc = 0, lt = 0; cats.live.forEach(function (c) { lt++; if (catVisibleLive(c)) lc++; });
-  // --- content switches (per profile) ---
-  inner.appendChild(ce("div", "s-sec", "Content for " + PF.name));
-  function toggleLine(key, label, desc, get, set) {
-    var l = ce("div", "s-line"), c = chip(label, desc, get(), null, "wide tog"); c._key = key;
-    c._act = function () { set(!get()); setChip(c, get()); ST.dirty = true; savePD(true); toast(label + ": " + (get() ? "ON" : "OFF")); };
-    l.appendChild(c); inner.appendChild(l); lnAdd(ln, l, [c]);
+  var sh = stShell(); sh.av.src = avatarSrc(PF.av); sh.nm.textContent = PF.name;
+  var pin = sh.pin; pin.textContent = ""; pin.style.transform = "";
+  var ln = ST.ln = LN(pin, 360);
+  var cur = stCur();
+  if (ST.page) {
+    var cr = ce("div", "s2-crumb"); cr.appendChild(ce("span", "", ST_CATS[stCatIdx(ST.cat)].t + "  \u203A  ")); cr.appendChild(ce("b", "", ST_PAGE_T[ST.page] || "")); pin.appendChild(cr);
   }
-  toggleLine("tog:adult", "Adult content (18+)", "OFF hides every adult channel, category, movie and search result for this profile", function () { return !!PD.st.adult; }, function (v) { PD.st.adult = v; });
-  toggleLine("tog:qc", "Hide Quebec / French-Canadian content", "Removes TVA, Noovo, RDS, ICI Radio-Canada, Télé-Québec, Super Écran\u2026 and Quebec groups from TV, Movies, Shows, search and sports", function () { return qcHidden(); }, function (v) { PD.st.hideQC = v; });
-  navBtn(inner, ln, "\uD83C\uDDE9\uD83C\uDDEA  Extra channels from other countries", (extraIds().length ? "Picked: " + extraChannels().map(function (c) { return logoName(c.n).split(" ").map(niceWord).join(" "); }).join(", ") : "None picked") + "  \u00b7  e.g. German DMAX and Discovery", function () { stPage("extra"); });
-  navBtn(inner, ln, "\u2B50  Favourite categories", (function () { var f = favOf(PF), l = f.cc.map(function (c) { return COUNTRY[c]; }).concat(f.subs, f.niches); return l.length ? "Favourites: " + l.join(", ") : "None yet"; })() + "  \u00b7  pinned higher on the TV hub and in Top picks", function () { stPage("fav"); });
-  inner.appendChild(ce("div", "s-sec", "More settings"));
-  navBtn(inner, ln, "\uD83D\uDCFA  Live TV filters", "Choose regions, countries and channel types for the TV tab. Showing " + lc + " of " + lt + " channel groups.", function () { stPage("live"); });
-  navBtn(inner, ln, "\uD83C\uDFAC  Movies & Shows filters", "Languages, genres and streaming sources for Movies, Shows and Search.", function () { stPage("vod"); });
-  navBtn(inner, ln, "\uD83C\uDFD2  Sports, events & time", "Favourite NHL team: " + (PD.st.nhlTeam ? teamName(PD.st.nhlTeam) : "none") + "  \u00b7  Game times shown in: " + tzLabel(), function () { stPage("sports"); });
-  navBtn(inner, ln, "\uD83D\uDC64  Profiles", "Switch, add, rename or delete profiles and change avatars.", function () { closeSettings(); openWho(true); });
-  navBtn(inner, ln, "\uD83D\uDCCA  " + PF.name + "'s viewing stats", "Hours watched, top genres, top channels, recent activity.", function () { closeSettings(); openProfilePage(); });
-  navBtn(inner, ln, "\uD83D\uDD11  Account", "Your IPTV provider login (shared by all profiles).", function () { stPage("account"); });
-  inner.appendChild(ce("div", "s-sec", "App"));
-  toggleLine("tog:intro", "Intro animation", "Play the NickFlix intro with sound when the app starts (all profiles). Any key skips it.", function () { return introEnabled(); }, function (v) { try { localStorage.setItem("nf_intro", v ? "1" : "0"); } catch (e) {} });
-  toggleLine("tog:mini", "Intro before shows", "A 2-second NickFlix sting before movies, episodes and My Media (all profiles). It plays while the video loads, so it adds no wait. Any key skips it.", function () { return miniEnabled(); }, function (v) { try { localStorage.setItem("nf_mini", v ? "1" : "0"); } catch (e) {} });
-  toggleLine("tog:minilive", "Intro before live channels too", "Also play the sting when you open a live channel from a row or the guide (never when flipping channels up/down).", function () { return miniLiveEnabled(); }, function (v) { try { localStorage.setItem("nf_mini_live", v ? "1" : "0"); } catch (e) {} });
-  inner.appendChild(ce("div", "s-note", "NickFlix 4.5"));
+  var R = { profile: stProfile, content: stContent, tv: stTV, picks: stPicks, sports: stSports, playback: stPlayback, app: stApp, account: stAccount,
+            live: stLive, vod: stVod, extra: stExtra, fav: stFav };
+  (R[cur] || stProfile)(pin, ln);
+  if (keepKey && keepKey !== "\u0000" && lnFind(ln, keepKey)) {} else if (!keepKey) { ln.li = 0; ln.ci = 0; }
+  stNavMark();
+  if (ST.zone === "pane") lnFocus(ln);
+}
+function stHead(inner, title, sub) {
+  inner.appendChild(ce("div", "s-h1", title));
+  if (sub) inner.appendChild(ce("div", "s-sub", sub));
+}
+/* one settings row: title + description on the left, a switch / value / arrow on the right */
+function stRow(inner, ln, o) {
+  var l = ce("div", "s-line"), r = ce("div", "s2-row" + (o.danger ? " danger" : ""));
+  if (o.ic) r.appendChild(ce("div", "s2-ric", o.ic));
+  var tx = ce("div", "s2-rtx"); tx.appendChild(ce("div", "s2-rt", o.t)); if (o.d) tx.appendChild(ce("div", "s2-rd", o.d)); r.appendChild(tx);
+  var ctl = ce("div", "s2-ctl"); r.appendChild(ctl);
+  function paint() {
+    ctl.textContent = "";
+    if (o.get) { var on = !!o.get(); var sw = ce("div", "s2-sw" + (on ? " on" : "")); sw.appendChild(ce("div", "s2-knob")); ctl.appendChild(ce("span", "s2-swl", on ? "On" : "Off")); ctl.appendChild(sw); }
+    else if (o.val) { ctl.appendChild(ce("span", "s2-val", o.val())); ctl.appendChild(ce("span", "s2-arr", "\u21BB")); }
+    else if (o.go) ctl.appendChild(ce("span", "s2-arr", "\u203A"));
+  }
+  paint();
+  r._key = o.key || ("row:" + o.t);
+  r._act = function () {
+    if (o.get) { o.set(!o.get()); paint(); ST.dirty = true; savePD(true); toast(o.t + ": " + (o.get() ? "On" : "Off")); return; }
+    if (o.act) o.act(r, paint);
+  };
+  r._paint = paint;
+  l.appendChild(r); inner.appendChild(l); lnAdd(ln, l, [r]); return r;
+}
+function stLsToggle(key, def) { return { get: function () { var v = null; try { v = localStorage.getItem(key); } catch (e) {} return v === null ? def : v === "1"; }, set: function (v) { try { localStorage.setItem(key, v ? "1" : "0"); } catch (e) {} } }; }
+
+function stProfile(inner, ln) {
+  stHead(inner, "Profile", "Everything here is for " + PF.name + " only.");
+  stRow(inner, ln, { key: "pf:av", ic: "\uD83D\uDDBC\uFE0F", t: "Change avatar", d: AVATARS + " avatars in " + (typeof AV_CATS !== "undefined" ? AV_CATS.length : 1) + " groups: animals, ocean, dinosaurs, vehicles, sports, patterns and more", go: 1, act: function () { openAvPickerFor(PF, "settings"); } });
+  stRow(inner, ln, { key: "pf:edit", ic: "\u270F\uFE0F", t: "Edit name & avatar", d: "Rename " + PF.name + " or delete this profile", go: 1, act: function () { openEditor(PF, "settings"); } });
+  stRow(inner, ln, { key: "pf:fav", ic: "\u2B50", t: "Favourite categories", d: (function () { var f = favOf(PF), l = f.cc.map(function (c) { return COUNTRY[c]; }).concat(f.subs, f.niches); return l.length ? l.join(", ") : "None yet"; })() + "  \u00b7  pinned higher on the TV hub and in Top picks", go: 1, act: function () { stPage("fav"); } });
+  stRow(inner, ln, { key: "pf:stats", ic: "\uD83D\uDCCA", t: PF.name + "'s viewing stats", d: "Hours watched, top genres, top channels, recent activity", go: 1, act: function () { closeSettings(); openProfilePage(); } });
+  inner.appendChild(ce("div", "s-sec", "Profiles"));
+  stRow(inner, ln, { key: "pf:switch", ic: "\uD83D\uDD04", t: "Switch profile", d: "Go back to \u201cWho's watching?\u201d", go: 1, act: function () { closeSettings(); openWho(false); } });
+  stRow(inner, ln, { key: "pf:manage", ic: "\uD83D\uDC65", t: "Manage profiles", d: "Add, rename or delete profiles", go: 1, act: function () { closeSettings(); openWho(true); } });
+  inner.appendChild(ce("div", "s-sec", "Learning"));
+  stRow(inner, ln, { key: "pf:reset", ic: "\uD83E\uDDF9", danger: 1, t: "Reset what NickFlix learned for " + PF.name, d: "Clears learned favourites (not watch history, My List or favourites). Press OK twice.", act: function (r) {
+    if (r._armed) { PD.learn = {}; savePD(true); toast("Learning reset for " + PF.name); ST.dirty = true; r._armed = false; r.classList.remove("armed"); }
+    else { r._armed = true; r.classList.add("armed"); toast("Press OK again to reset"); setTimeout(function () { r._armed = false; r.classList.remove("armed"); }, 5000); } } });
+}
+function stContent(inner, ln) {
+  stHead(inner, "Content & filters", "Saved for " + PF.name + " and applied when you leave Settings.");
+  stRow(inner, ln, { key: "ct:vod", ic: "\uD83C\uDFAC", t: "Movies & Shows filters", d: "Languages, genres, streaming sources and whether Movies/Shows start in Curated or All", go: 1, act: function () { stPage("vod"); } });
+  inner.appendChild(ce("div", "s-sec", "Hide content"));
+  stRow(inner, ln, { key: "tog:adult", ic: "\uD83D\uDD1E", t: "Adult content (18+)", d: "Off hides every adult channel, category, movie and search result for this profile", get: function () { return !!PD.st.adult; }, set: function (v) { PD.st.adult = v; } });
+  stRow(inner, ln, { key: "tog:qc", ic: "\u269C\uFE0F", t: "Hide Quebec / French-Canadian content", d: "Removes TVA, Noovo, RDS, ICI Radio-Canada, T\u00e9l\u00e9-Qu\u00e9bec, Super \u00c9cran\u2026 from TV, Movies, Shows, search and sports", get: function () { return qcHidden(); }, set: function (v) { PD.st.hideQC = v; } });
+}
+function stTV(inner, ln) {
+  var lc = 0, lt = 0; cats.live.forEach(function (c) { lt++; if (catVisibleLive(c)) lc++; });
+  stHead(inner, "Live TV", "What shows up on the TV tab for " + PF.name + ".");
+  stRow(inner, ln, { key: "tv:filters", ic: "\uD83C\uDF0D", t: "Live TV filters", d: "Regions, countries and channel types. Showing " + lc + " of " + lt + " channel groups.", go: 1, act: function () { stPage("live"); } });
+  stRow(inner, ln, { key: "tv:extra", ic: "\uD83C\uDDE9\uD83C\uDDEA", t: "Extra channels from other countries", d: (extraIds().length ? "Picked: " + extraChannels().map(function (c) { return logoName(c.n).split(" ").map(niceWord).join(" "); }).join(", ") : "None picked") + "  \u00b7  e.g. German DMAX and Discovery", go: 1, act: function () { stPage("extra"); } });
+  stRow(inner, ln, { key: "tv:team", ic: "\uD83C\uDFD2", t: "Favourite NHL team", d: PD.st.nhlTeam ? teamName(PD.st.nhlTeam) : "None", go: 1, act: function () { openTeamPicker(); } });
+}
+var SLOT_MIX = [["taste", "More like what I watch"], ["bal", "Balanced"], ["wild", "Wild card"]];
+function slotMix() { var m = PD && PD.st.slotMix; return m === "taste" || m === "wild" ? m : "bal"; }
+function surpriseOn() { return !(PD && PD.st.surprise === false); }
+function dailyOn() { return !(PD && PD.st.daily === false); }
+function slotSoundOn() { return !(PD && PD.st.slotSound === false); }
+function stPicks(inner, ln) {
+  stHead(inner, "Picks & Surprise me", "Fresh ideas for " + PF.name + " in Live TV, Movies and Shows.");
+  stRow(inner, ln, { key: "pk:surprise", ic: "\uD83C\uDFB0", t: "Surprise me button", d: "A slot-machine button at the top of Live TV, Movies and Shows. Picks stay hidden until you press it.", get: surpriseOn, set: function (v) { PD.st.surprise = v; } });
+  stRow(inner, ln, { key: "pk:mix", ic: "\uD83C\uDFB2", t: "Surprise picks", d: "How much the slot machine follows your taste versus pure luck", val: function () { var m = slotMix(); for (var i = 0; i < SLOT_MIX.length; i++) if (SLOT_MIX[i][0] === m) return SLOT_MIX[i][1]; return ""; },
+    act: function (r, paint) { var o = SLOT_MIX.map(function (x) { return x[0]; }), m = slotMix(); PD.st.slotMix = o[(o.indexOf(m) + 1) % o.length]; savePD(true); paint(); } });
+  stRow(inner, ln, { key: "pk:sound", ic: "\uD83D\uDD14", t: "Slot machine sound", d: "Short clicks and a ding while the reels spin. Off = silent.", get: slotSoundOn, set: function (v) { PD.st.slotSound = v; } });
+  inner.appendChild(ce("div", "s-sec", "Today's picks"));
+  stRow(inner, ln, { key: "pk:daily", ic: "\uD83D\uDCC5", t: "Today's picks rows", d: "A row in Live TV, Movies and Shows that changes every day at midnight (" + tzLabel() + "). It mixes your taste with things you don't usually watch.", get: dailyOn, set: function (v) { PD.st.daily = v; } });
+}
+function stApp(inner, ln) {
+  stHead(inner, "App & intro", "Shared by all profiles on this TV.");
+  var t1 = stLsToggle("nf_intro", true), t2 = stLsToggle("nf_mini", true), t3 = stLsToggle("nf_mini_live", false);
+  stRow(inner, ln, { key: "tog:intro", ic: "\uD83C\uDFAC", t: "Intro animation", d: "Play the NickFlix intro with sound when the app starts. Any key skips it.", get: function () { return introEnabled(); }, set: t1.set });
+  stRow(inner, ln, { key: "tog:mini", ic: "\u26A1", t: "Intro before shows", d: "A 2-second sting before movies, episodes and My Media. It plays while the video loads, so it adds no wait.", get: function () { return miniEnabled(); }, set: t2.set });
+  stRow(inner, ln, { key: "tog:minilive", ic: "\uD83D\uDCE1", t: "Intro before live channels too", d: "Also play the sting when you open a live channel from a row or the guide (never when flipping channels).", get: function () { return miniLiveEnabled(); }, set: t3.set });
+  inner.appendChild(ce("div", "s-sec", "About"));
+  inner.appendChild(ce("div", "s-note", "NickFlix 4.11  \u00b7  " + AVATARS + " avatars  \u00b7  Settings per profile: " + PF.name));
 }
 function liveCodes() {
   var cnt = {}; cats.live.forEach(function (c) { if (!c.adult) cnt[c.code] = (cnt[c.code] || 0) + 1; }); return cnt;
@@ -119,7 +224,7 @@ function stLive(inner, ln) {
     ex._key = "exp:" + g[0];
     l.appendChild(rc); l.appendChild(ex); inner.appendChild(l); lnAdd(ln, l, [rc, ex]);
     if (ST.exp[g[0]]) {
-      grid(inner, ln, codes, 4, function (c) {
+      grid(inner, ln, codes, 3, function (c) {
         var ch = chip(LANG_NAMES[c] || c, c + " \u00b7 " + cnt[c], liveCountryOn(c), null, "sub");
         ch._key = "c:" + c; ch._act = function () { setCountry(c, !liveCountryOn(c)); renderSettings(ch._key); };
         return ch;
@@ -131,7 +236,7 @@ function stLive(inner, ln) {
   inner.appendChild(ce("div", "s-note", "Turn a type off to hide it everywhere, e.g. Radio or Religious."));
   var tcnt = {}; cats.live.forEach(function (c) { tcnt[c.ltype] = (tcnt[c.ltype] || 0) + 1; });
   var types = LIVE_TYPES.map(function (t) { return t[0]; });
-  grid(inner, ln, types, 4, function (t) {
+  grid(inner, ln, types, 3, function (t) {
     var ch = chip(t, String(tcnt[t] || 0), !L.typesOff[t], null);
     ch._key = "t:" + t; ch._act = function () { if (L.typesOff[t]) delete L.typesOff[t]; else L.typesOff[t] = 1; ST.dirty = true; savePD(); setChip(ch, !L.typesOff[t]); };
     return ch;
@@ -147,7 +252,7 @@ function stLive(inner, ln) {
     if (ST.ctExp[c]) {
       var al = ce("div", "s-line"), noL = chip("No limit (all types)", "", !lim, function () { delete L.ctypes[c]; ST.dirty = true; savePD(); renderSettings(noL._key); }, "sub");
       noL._key = "ctn:" + c; al.appendChild(noL); inner.appendChild(al); lnAdd(ln, al, [noL]);
-      grid(inner, ln, types, 4, function (t) {
+      grid(inner, ln, types, 3, function (t) {
         var on = !!lim && lim.indexOf(t) >= 0;
         var ch = chip(t, "", on, null, "sub");
         ch._key = "ctt:" + c + ":" + t;
@@ -170,9 +275,6 @@ function stSports(inner, ln) {
     c._act = function () { account.tz = o[0]; saveAccount(); XC = {}; tick(); ST.dirty = true; renderSettings(c._key); };
     return c;
   });
-  inner.appendChild(ce("div", "s-sec", "Learning"));
-  var l2 = ce("div", "s-line"), b2 = chip("Reset what NickFlix learned for " + PF.name, "", false, function () { if (b2._armed) { PD.learn = {}; savePD(true); toast("Learning reset for " + PF.name); ST.dirty = true; b2._armed = false; } else { b2._armed = true; toast("Press OK again to reset"); } }, "act");
-  l2.appendChild(b2); inner.appendChild(l2); lnAdd(ln, l2, [b2]);
 }
 /* extra channels from countries that are switched off (start with Germany) */
 var XC_COUNTRIES = [["DE", "Germany"], ["NOW", "Germany (Sky/WOW)"], ["AT", "Austria"], ["SW", "Switzerland"], ["FR", "France"], ["IT", "Italy"], ["ES", "Spain"], ["NL", "Netherlands"], ["AU", "Australia"], ["IE", "Ireland"]];
@@ -198,7 +300,7 @@ function stExtra(inner, ln) {
   grid(inner, ln, sug, 3, function (x) { return chChip(x[0], x[1]); });
   inner.appendChild(ce("div", "s-sec", "Browse a country"));
   var codes = XC_COUNTRIES.filter(function (x) { return cats.live.some(function (c) { return c.code === x[0] && !c.adult; }); });
-  grid(inner, ln, codes, 4, function (x) { var c = chip(x[1], "", ST.xc === x[0], null, "act"); c._key = "xc:" + x[0]; c._act = function () { ST.xc = ST.xc === x[0] ? null : x[0]; ST.xg = null; renderSettings(c._key); }; return c; });
+  grid(inner, ln, codes, 3, function (x) { var c = chip(x[1], "", ST.xc === x[0], null, "act"); c._key = "xc:" + x[0]; c._act = function () { ST.xc = ST.xc === x[0] ? null : x[0]; ST.xg = null; renderSettings(c._key); }; return c; });
   if (ST.xc) {
     var groups = cats.live.filter(function (c) { return c.code === ST.xc && !c.adult && !(c.qc && qcHidden()); });
     inner.appendChild(ce("div", "s-sec", "Groups in " + ST.xc));
@@ -243,7 +345,7 @@ function stVod(inner, ln) {
     var aOn = chip("Turn all on", "", false, function () { list.forEach(function (x) { if (x.key !== "ADULT") toggle(x.key, true); }); chips.forEach(function (c) { if (c._k !== "ADULT") setChip(c, true); }); ST.dirty = true; savePD(); }, "act");
     var aOff = chip("Turn all off", "", false, function () { list.forEach(function (x) { toggle(x.key, false); }); chips.forEach(function (c) { setChip(c, false); }); ST.dirty = true; savePD(); }, "act");
     al.appendChild(aOn); al.appendChild(aOff); inner.appendChild(al); lnAdd(ln, al, [aOn, aOff]);
-    chips = grid(inner, ln, list, 4, function (x) {
+    chips = grid(inner, ln, list, 3, function (x) {
       var c = chip(x.label, x.sub, isOn(x.key), null); c._k = x.key; c._key = title + ":" + x.key;
       c._act = function () { var nv = !isOn(x.key); toggle(x.key, nv); setChip(c, nv); ST.dirty = true; savePD(); };
       return c;
@@ -256,8 +358,7 @@ function stVod(inner, ln) {
     function (k) { return !v.sourcesOff[k]; }, function (k, on) { if (on) delete v.sourcesOff[k]; else v.sourcesOff[k] = 1; });
 }
 function stAccount(inner, ln) {
-  inner.appendChild(ce("div", "s-h1", "Account"));
-  inner.appendChild(ce("div", "s-note", "Your IPTV provider login, shared by all profiles. Press OK on a field to type."));
+  stHead(inner, "Account", "Your IPTV provider login, shared by all profiles. Press OK on a field to type, then BACK or ▲▼ to finish.");
   [["Server", "server", "text"], ["Username", "username", "text"], ["Password", "password", "password"]].forEach(function (f) {
     var l = ce("div", "s-line"); l.appendChild(ce("div", "s-lab", f[0]));
     var inp = document.createElement("input"); inp.className = "inp"; inp.type = f[2]; inp.value = account[f[1]]; inp.setAttribute("autocomplete", "off");
@@ -273,7 +374,19 @@ function stAccount(inner, ln) {
   }, "act");
   sl.appendChild(sv); inner.appendChild(sl); lnAdd(ln, sl, [sv]);
 }
-ST.key = function (k) { if (k === "back") { stBack(); return; } lnKey(ST.ln, k); };
+ST.key = function (k) {
+  if (ST.zone === "nav") {
+    var i = stCatIdx(ST.cat);
+    if (k === "up" || k === "down") { var n = i + (k === "up" ? -1 : 1); if (n < 0 || n >= ST_CATS.length) return; ST.cat = ST_CATS[n].id; ST.page = null; ST.stack = []; renderSettings(); return; }
+    if (k === "right" || k === "enter") { if (ST.ln.lines.length) stToPane(); return; }
+    if (k === "back") closeSettings();
+    return;
+  }
+  if (k === "back") { stBack(); return; }
+  if (k === "left") { if (!lnKey(ST.ln, "left")) { if (ST.page) stBack(); else stToNav(); } return; }
+  lnKey(ST.ln, k);
+};
+ST.refocus = function () { if (ST.zone === "pane") lnFocus(ST.ln); else stNavMark(); };
 
 /* ================= who's watching ================= */
 var WH = { id: "who", ln: null, manage: false, first: false };
@@ -332,8 +445,8 @@ function chooseProfile(id) {
 
 /* ================= profile editor ================= */
 var PE = { id: "pedit", ln: null, p: null, name: "", av: 0 };
-function openEditor(p) {
-  PE.p = p; PE.name = p ? p.name : ""; PE.av = p ? p.av : (profiles.list.length * 5) % 16;
+function openEditor(p, from) {
+  PE.from = from || null; PE.p = p; PE.name = p ? p.name : ""; PE.av = p ? p.av : (profiles.list.length * 5) % 16;
   ovOpen(PE); renderEditor();
   PE.ln.li = 0; PE.ln.ci = 0; lnFocus(PE.ln);
 }
@@ -357,7 +470,7 @@ function renderEditor(keepKey) {
   // 4.7: one "Choose avatar" tile here; the full picker (category rows, 120+ avatars) opens on OK
   var arow = ce("div", "pe-arow"), ab = ce("div", "pe-avbtn");
   var abi = document.createElement("img"); abi.src = avatarSrc(PE.av); ab.appendChild(abi);
-  var abt = ce("div", "pe-avbtn-t"); abt.appendChild(ce("div", "", "Choose avatar \u203A")); abt.appendChild(ce("div", "pe-avbtn-s", AVATARS + " to pick from: smileys, animals, sports, Yukon, food, space, monsters, flags, letters")); ab.appendChild(abt);
+  var abt = ce("div", "pe-avbtn-t"); abt.appendChild(ce("div", "", "Choose avatar \u203A")); abt.appendChild(ce("div", "pe-avbtn-s", AVATARS + " to pick from: animals, ocean, dinosaurs, sports, vehicles, food, space, patterns, letters\u2026")); ab.appendChild(abt);
   ab._act = function () { openAvPicker(); }; ab._pane = 1; arow.appendChild(ab); avs.appendChild(arow); lnAdd(aln, arow, [ab]);
   for (var L = 0; L < Math.max(kln.lines.length, aln.lines.length); L++) {
     var kl = kln.lines[L], al = aln.lines[L];
@@ -365,8 +478,8 @@ function renderEditor(keepKey) {
   }
   var bl = ce("div", "pe-btns"), bits = [];
   var save = ce("div", "btn primary", "Save"); save._act = saveEditor; bl.appendChild(save); bits.push(save);
-  if (PE.p && profiles.list.length > 1) { var del = ce("div", "btn", "Delete profile"); del._act = function () { if (del._armed) { deleteProfile(PE.p.id); var wasCur = PF && PF.id === PE.p.id; ovClose(PE); if (wasCur) { PF = null; WH.first = true; } renderWho(); } else { del._armed = true; del.textContent = "Press OK again to delete"; } }; bl.appendChild(del); bits.push(del); }
-  var cancel = ce("div", "btn", "Cancel"); cancel._act = function () { ovClose(PE); renderWho(); }; bl.appendChild(cancel); bits.push(cancel);
+  if (PE.p && profiles.list.length > 1) { var del = ce("div", "btn", "Delete profile"); del._act = function () { if (del._armed) { deleteProfile(PE.p.id); var wasCur = PF && PF.id === PE.p.id; ovClose(PE); if (PE.from === "settings") { ovClose(ST); PF = null; WH.first = true; openWho(false); return; } if (wasCur) { PF = null; WH.first = true; } renderWho(); } else { del._armed = true; del.textContent = "Press OK again to delete"; } }; bl.appendChild(del); bits.push(del); }
+  var cancel = ce("div", "btn", "Cancel"); cancel._act = peClose; bl.appendChild(cancel); bits.push(cancel);
   box.appendChild(bl); lnAdd(ln, bl, bits, { resetCol: true });
   showName();
   ln.li = keepLi; ln.ci = keepCi;
@@ -377,13 +490,18 @@ function saveEditor() {
   if (!name) { toast("Type a name first"); return; }
   if (PE.p) { PE.p.name = name; PE.p.av = PE.av; saveProfiles(); if (PF && PF.id === PE.p.id) { $("nav-av").src = avatarSrc(PF.av); $("nav-name").textContent = PF.name; } }
   else { var np = createProfile(name, PE.av); toast("Profile \u201c" + name + "\u201d created"); PE.newId = np.id; }
+  if (PE.from === "settings") { ovClose(PE); renderSettings("pf:edit"); toast("Saved"); return; }
   ovClose(PE); WH.manage = false; renderWho(PE.p ? PE.p.id : PE.newId);
 }
-PE.key = function (k) { if (k === "back") { ovClose(PE); renderWho(); return; } lnKey(PE.ln, k); };
+function peClose() { ovClose(PE); if (PE.from === "settings") { restoreFocus(); return; } renderWho(); }
+PE.key = function (k) { if (k === "back") { peClose(); return; } lnKey(PE.ln, k); };
 
 /* ================= avatar picker (4.7) ================= */
-var AP = { id: "avpick", r: 0, c: 0, rows: [] };
-function openAvPicker() {
+var AP = { id: "avpick", r: 0, c: 0, rows: [], mode: "editor" };
+/* 4.11: pick an avatar straight from Settings > Profile (saved at once) */
+function openAvPickerFor(p, from) { PE.p = p; PE.name = p.name; PE.av = p.av; PE.from = from; openAvPicker("direct"); }
+function openAvPicker(mode) {
+  AP.mode = mode || "editor";
   AP.rows = (typeof AV_CATS !== "undefined" ? AV_CATS : [{ t: "Avatars", ids: Array.apply(null, Array(AVATARS)).map(function (_, i) { return i; }) }]);
   AP.r = 0; AP.c = 0;
   AP.rows.forEach(function (row, ri) { var ci = row.ids.indexOf(+PE.av); if (ci >= 0) { AP.r = ri; AP.c = ci; } });
@@ -391,8 +509,11 @@ function openAvPicker() {
 }
 function renderAvPicker() {
   var box = $("avpick-inner"); box.textContent = "";
-  box.appendChild(ce("div", "ap-h", "Choose an avatar" + (PE.name ? " for " + PE.name : "")));
-  box.appendChild(ce("div", "ap-sub", "\u25B2 \u25BC  category      \u25C0 \u25B6  browse      OK  pick      BACK  cancel"));
+  var hd = ce("div", "ap-hd"), cur = document.createElement("img"); cur.className = "ap-cur"; cur.id = "ap-cur"; cur.src = avatarSrc(PE.av); hd.appendChild(cur);
+  var ht = ce("div", "ap-ht"); ht.appendChild(ce("div", "ap-h", "Choose an avatar" + (PE.name ? " for " + PE.name : ""))); ht.appendChild(ce("div", "ap-sub", "")); hd.appendChild(ht); box.appendChild(hd);
+  var rail = ce("div", "ap-rail"); rail.id = "ap-rail";
+  AP.rows.forEach(function (row) { var e = ce("div", "ap-rc"); e.appendChild(ce("span", "", row.t)); e.appendChild(ce("span", "ap-rn", String(row.ids.length))); rail.appendChild(e); });
+  box.appendChild(rail);
   var view = ce("div", "ap-view"), wrap = ce("div", "ap-rows"); wrap.id = "ap-rows"; view.appendChild(wrap); box.appendChild(view);
   AP.rows.forEach(function (row, ri) {
     var r = ce("div", "ap-row"); r.appendChild(ce("div", "ap-rt", row.t + "  \u00b7  " + row.ids.length));
@@ -407,7 +528,7 @@ function renderAvPicker() {
   apFocus();
 }
 function apFocus() {
-  var rows = $("ap-rows").children, PITCH = 162, VIS = 10;
+  var rows = $("ap-rows").children, PITCH = 162, VIS = 8;
   for (var ri = 0; ri < rows.length; ri++) {
     var tr = rows[ri].children[1], n = tr.children.length, c = ri === AP.r ? AP.c : (rows[ri]._c || 0);
     var off = Math.max(0, Math.min(c - 4, n - VIS)); if (ri === AP.r) rows[ri]._c = AP.c;
@@ -417,12 +538,16 @@ function apFocus() {
   }
   $("ap-rows").style.transform = "translateY(" + (-Math.max(0, AP.r - 1) * 232) + "px)";
   var id = AP.rows[AP.r].ids[AP.c], nm = (typeof AV_NAMES !== "undefined" && AV_NAMES[id]) || "";
-  var sub = $("avpick-inner").getElementsByClassName("ap-sub")[0]; if (sub) sub.textContent = (nm ? nm + "      " : "") + "\u25B2 \u25BC  category      \u25C0 \u25B6  browse      OK  pick      BACK  cancel";
+  var sub = $("avpick-inner").getElementsByClassName("ap-sub")[0]; if (sub) sub.textContent = (nm ? nm + "   \u00b7   " : "") + (AP.c + 1) + " of " + AP.rows[AP.r].ids.length + " in " + AP.rows[AP.r].t + "\n\u25B2\u25BC category    \u25C0\u25B6 browse    OK pick    BACK cancel";
+  var cur = $("ap-cur"); if (cur) cur.src = avatarSrc(id);
+  var rc = $("ap-rail").children, ry = Math.max(0, Math.min(AP.r - 5, rc.length - 13));
+  for (var q = 0; q < rc.length; q++) rc[q].classList.toggle("cur", q === AP.r);
+  $("ap-rail").style.transform = "translateY(" + (-ry * 62) + "px)";
 }
 AP.refocus = function () { apFocus(); };
 AP.key = function (k) {
   var row = AP.rows[AP.r];
-  if (k === "back") { ovClose(AP); lnFocus(PE.ln); return; }
+  if (k === "back") { ovClose(AP); if (AP.mode === "direct") restoreFocus(); else lnFocus(PE.ln); return; }
   if (k === "left") { if (AP.c > 0) AP.c--; }
   else if (k === "right") { if (AP.c < row.ids.length - 1) AP.c++; }
   else if (k === "up" || k === "down") {
@@ -430,7 +555,9 @@ AP.key = function (k) {
     var rows = $("ap-rows").children; rows[AP.r]._c = AP.c;
     AP.r = nr; AP.c = Math.min(rows[nr]._c || 0, AP.rows[nr].ids.length - 1);
   } else if (k === "enter") {
-    PE.av = row.ids[AP.c]; ovClose(AP); renderEditor(); lnFocus(PE.ln); toast("Avatar picked \u2013 press Save to keep it"); return;
+    PE.av = row.ids[AP.c];
+    if (AP.mode === "direct") { PE.p.av = PE.av; saveProfiles(); if (PF && PF.id === PE.p.id) { $("nav-av").src = avatarSrc(PF.av); } ovClose(AP); if (OV.top() === ST) renderSettings("pf:av"); else restoreFocus(); toast("Avatar changed"); return; }
+    ovClose(AP); renderEditor(); lnFocus(PE.ln); toast("Avatar picked \u2013 press Save to keep it"); return;
   }
   apFocus();
 };
