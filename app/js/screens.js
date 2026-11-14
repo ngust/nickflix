@@ -199,7 +199,7 @@ function stApp(inner, ln) {
     r._armed = false; bkRestoreFile(function (ok, msg) { toast(msg, 4000); if (ok) setTimeout(function () { location.reload(); }, 1800); }); } });
   if (!BK.remote) bkFetch(function () { if (OV.top() === ST && ST.cat === "app" && !ST.page) renderSettings("\u0000"); });
   inner.appendChild(ce("div", "s-sec", "About"));
-  inner.appendChild(ce("div", "s-note", "NickFlix 4.12  \u00b7  " + AVATARS + " avatars  \u00b7  Settings per profile: " + PF.name));
+  inner.appendChild(ce("div", "s-note", "NickFlix 4.13  \u00b7  " + AVATARS + " avatars  \u00b7  Settings per profile: " + PF.name));
 }
 function liveCodes() {
   var cnt = {}; cats.live.forEach(function (c) { if (!c.adult) cnt[c.code] = (cnt[c.code] || 0) + 1; }); return cnt;

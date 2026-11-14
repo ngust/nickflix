@@ -146,7 +146,7 @@ function pbOpen(url, gen) {
   P.curURL = url; PB.lastT = -1; PB.lastMove = Date.now(); PB.bufAt = 0;
   if (!avOK()) {   // browser / emulator fallback: keep the 4.6 HTML5 path, add stall handling
     P.useAV = false; var v = $("video"); v.classList.remove("off");
-    v.onplaying = function () { if (gen !== PB.gen) return; if (!P.started) pbGrace(12000); P.started = true; PB.tries = 0; if (!PB.rfT) pbBadge(""); osd("", null, false); };
+    v.onplaying = function () { if (gen !== PB.gen) return; if (!P.started) { pbGrace(12000); try { setTimeout(function () { auAuto(0); }, 300); } catch (eA) {} } P.started = true; PB.tries = 0; if (!PB.rfT) pbBadge(""); osd("", null, false); };
     v.onloadedmetadata = function () { if (resume > 0) { try { v.currentTime = resume / 1000; } catch (e5) {} resume = 0; } };
     v.onwaiting = function () { if (gen !== PB.gen) return; PB.bufAt = PB.bufAt || Date.now(); if (P.started && Date.now() > PB.graceUntil && !PB.bufCounted) { PB.bufCounted = true; pbStall(gen); } osd("Buffering\u2026", null, true); };
     v.oncanplaythrough = function () { if (gen !== PB.gen || !PB.bufAt) return; PB.bufAt = 0; var c = PB.bufCounted; PB.bufCounted = false; if (c) pbStallEnd(gen); };
@@ -182,7 +182,7 @@ function pbOpen(url, gen) {
         av.play(); P.started = true; PB.lastMove = Date.now(); pbGrace(resume > 0 ? 15000 : 12000);
         if (live) { var f = pbFmtOf(url); if (PB.okFmt[P.item.id] !== f) { PB.okFmt[P.item.id] = f; lsSet("nf_okfmt", PB.okFmt); } }
         if (PB.tries) { pdiag("recovered", "after " + PB.tries); osd("Reconnected", null, false); } else if (resume > 0) {} else osd("", null, false);
-        PB.tries = 0; pbBadge(""); pbProbe(av, url);
+        PB.tries = 0; pbBadge(""); pbProbe(av, url); try { auAuto(0); } catch (eA) {}
         if (resume > 0) { try { av.seekTo(resume, function () { osd("Resumed at " + fmtTime(resume), null, false); }, function () {}); } catch (e3) {} }
       } catch (e1) { pbTrouble("error", String(e1)); }
     }, function (err) { if (gen === PB.gen) { clearTimeout(PB.prepT); pbTrouble("error", err && err.name ? err.name : String(err)); } });

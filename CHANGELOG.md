@@ -2,6 +2,12 @@
 
 All dates 2026. NickFlix is a Netflix-style front end for an Xtream-codes IPTV account on Samsung Tizen TVs.
 
+## 4.13
+- **Audio language selection (`js/audio.js`).** Tracks come from AVPlay `getTotalTrackInfo()` (type `AUDIO`, language parsed from the `extra_info` JSON: ISO 639-1/-2 codes and common names) and are switched live with `setSelectTrack("AUDIO", index)`. The HTML5 `<video>` fallback uses `video.audioTracks` where the browser has it.
+- **Audio menu in the player:** YELLOW (any title) or ▲ (movies and episodes; on live ▲ ▼ still change channel) opens it; ▲ ▼ pick, OK switches, BACK closes. The current track is ticked, codec and channels shown.
+- **English picked automatically:** on playback start (movies, episodes and live, AVPlay and proxy paths alike) the profile's preferred audio language (`PD.alang`, default `en`) is selected when the stream has it. A choice made in the menu is remembered for that title (`PD.atr`, last 300) and becomes the profile's preferred language.
+- Tests: `tests/t413.py` (mocked avplay with French first, English second).
+
 ## 4.12
 - **Profile backup, two copies off the app's own storage.** The TV's localStorage stays the primary copy; `js/backup.js` mirrors all user state (`nf_profiles`, every `nf_p_<id>` with watch history, My List, positions, learning, favourite categories and avatars, plus app settings `nf_intro`, `nf_mini*`, `nf_play`, `nf_proxy`, `nf_st_cat`, format learning, NAS "seen"; never the provider login `nf_account` or caches).
   - **TV file:** `documents/NickFlix/nf_backup.json` (falls back to `downloads/`) in the TV's shared user storage through `tizen.filesystem`, with one previous copy `nf_backup.prev.json`. Shared storage is outside the app's data folder, so an app-data wipe should not remove it. New privileges: `filesystem.read`, `filesystem.write`, `mediastorage` (permission asked through `tizen.ppm` where the firmware has it).
