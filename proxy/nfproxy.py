@@ -20,8 +20,18 @@ Single upstream: switching channel / starting a movie closes the old upstream fi
 Idle:  upstream closes NF_IDLE seconds after the last TV client leaves.
 
 GET /health -> ok        GET /status -> JSON (no credentials)
+
+4.12 profile backup (NickFlix keeps its own copy on the TV; this is the off-TV backup):
+    GET  /backup/profiles               -> latest backup JSON (404 if none)
+    GET  /backup/profiles?file=<name>   -> one older rotated copy
+    GET  /backup/profiles/list          -> metadata of all kept copies
+    PUT|POST /backup/profiles[?force=1] -> store {"keys": {nf_*: "<raw localStorage string>"}, ...}
+Files: NF_BACKUP_DIR (default <this dir>/backups/profiles): latest.json + profiles-YYYYmmdd-HHMMSS-mmm.json,
+newest NF_BACKUP_KEEP (12) kept plus always the fullest one. A "default" state (one profile, no history) is never
+stored over a real backup (409 default_over_real); a copy with fewer profiles and < 1/4 of the data is refused
+(409 downgrade) unless ?force=1.
 """
-import asyncio, bisect, json, os, re, ssl, sys, time, urllib.parse
+import asyncio, bisect, hashlib, json, os, re, ssl, sys, time, urllib.parse
 
 def env(k, d): return (os.environ.get(k, d) or d).split(" #")[0].strip() or d   # tolerate inline comments from env files
 CFG = {
@@ -35,6 +45,8 @@ CFG = {
     "hls_variant": env("NF_HLS_VARIANT", "highest"),         # highest | lowest (when the provider playlist has several)
     "client_stall": float(env("NF_CLIENT_STALL", "75")),     # give up on a TV client if no data for this long
     "ua": env("NF_UA", ""), "log": env("NF_LOG", "info"),
+    "backup_dir": env("NF_BACKUP_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "backups", "profiles")),
+    "backup_keep": int(env("NF_BACKUP_KEEP", "12")), "backup_max": int(env("NF_BACKUP_MAX_MB", "8")) * 1048576,
 }
 CHUNK = 64 * 1024
 TS = 188
@@ -341,6 +353,102 @@ async def serve_vod(path, headers, w):
     finally:
         V.clients -= 1; V.idle_since = now()
 
+# ---------------------------------------------------------------- 4.12 profile backup
+BK_KEY = re.compile(r"^nf_[A-Za-z0-9_]{1,80}$")
+BK_FILE = re.compile(r"^profiles-\d{8}-\d{6}-\d{3}\.json$")
+CORS = "Access-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, PUT, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\n"
+def bk_info(keys):
+    """same rule as NickFlix backup.js bkInfo: how much real user data a key set holds"""
+    try: pl = (json.loads(keys.get("nf_profiles") or "null") or {}).get("list") or []
+    except Exception: pl = []
+    content = 0
+    for k, v in keys.items():
+        if not k.startswith("nf_p_"): continue
+        try: d = json.loads(v) or {}
+        except Exception: continue
+        if not isinstance(d, dict): continue
+        st = d.get("stats") or {}
+        content += len(d.get("hist") or []) + len(d.get("wl") or []) + len(d.get("list") or []) + len(d.get("pos") or {}) + (1 if isinstance(st, dict) and (st.get("sec") or 0) > 0 else 0)
+    names = [str(p.get("name", ""))[:40] for p in pl if isinstance(p, dict)]
+    return {"profiles": len(pl), "names": names, "score": content + 5 * max(0, len(pl) - 1), "default": len(pl) <= 1 and content == 0}
+def bk_read(name="latest.json"):
+    try:
+        with open(os.path.join(CFG["backup_dir"], name), "r", encoding="utf-8") as f: return json.load(f)
+    except Exception: return None
+def bk_write_atomic(path, data):
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f: f.write(data); f.flush(); os.fsync(f.fileno())
+    os.replace(tmp, path)
+def bk_files():
+    try: return sorted(n for n in os.listdir(CFG["backup_dir"]) if BK_FILE.match(n))
+    except Exception: return []
+def bk_rotate():
+    names = bk_files()
+    keep = set(names[-CFG["backup_keep"]:])
+    best, bs = None, -1
+    for n in names:
+        m = (bk_read(n) or {}).get("meta") or {}
+        if not m.get("default") and m.get("score", 0) >= bs: best, bs = n, m.get("score", 0)
+    if best: keep.add(best)
+    for n in names:
+        if n not in keep:
+            try: os.remove(os.path.join(CFG["backup_dir"], n))
+            except Exception: pass
+def bk_put(body, force):
+    try: data = json.loads(body.decode("utf-8"))
+    except Exception: return 400, {"ok": False, "reason": "bad_json"}
+    keys = data.get("keys") if isinstance(data, dict) else None
+    if not isinstance(keys, dict) or "nf_profiles" not in keys: return 400, {"ok": False, "reason": "no_keys"}
+    keys = {k: v for k, v in keys.items() if isinstance(k, str) and BK_KEY.match(k) and isinstance(v, str) and k != "nf_account"}
+    info = bk_info(keys)
+    h = hashlib.sha256(json.dumps(keys, sort_keys=True, separators=(",", ":")).encode()).hexdigest()[:16]
+    latest = bk_read(); lm = (latest or {}).get("meta") or {}
+    if latest and lm.get("hash") == h: return 200, {"ok": True, "unchanged": True, "meta": lm}
+    if latest and not lm.get("default"):
+        if info["default"] or data.get("default") is True and lm.get("score", 0) > 0:
+            return 409, {"ok": False, "reason": "default_over_real", "latest": lm}
+        if not force and info["profiles"] < lm.get("profiles", 0) and info["score"] * 4 < lm.get("score", 0):
+            return 409, {"ok": False, "reason": "downgrade", "latest": lm}
+    t = time.time()
+    name = time.strftime("profiles-%Y%m%d-%H%M%S", time.localtime(t)) + "-%03d.json" % int((t % 1) * 1000)
+    meta = dict(info, ts=int(t * 1000), iso=time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(t)), hash=h, file=name,
+                app=str(data.get("app", ""))[:10], client_default=bool(data.get("default")), forced=bool(force))
+    tf = data.get("tvfile")
+    if isinstance(tf, dict):   # the TV's own second copy (shared storage), as the app reported it
+        meta["tvfile"] = {k: (str(tf.get(k))[:200] if k in ("path", "err") else tf.get(k)) for k in ("ok", "ts", "path", "err", "api") if k in tf}
+    doc = json.dumps({"v": 1, "meta": meta, "keys": keys}, separators=(",", ":"))
+    os.makedirs(CFG["backup_dir"], exist_ok=True)
+    bk_write_atomic(os.path.join(CFG["backup_dir"], name), doc)
+    bk_write_atomic(os.path.join(CFG["backup_dir"], "latest.json"), doc)
+    bk_rotate()
+    log("backup stored", name, "profiles=%d score=%d default=%s" % (info["profiles"], info["score"], info["default"]))
+    return 200, {"ok": True, "meta": meta}
+def reply(w, code, obj=None, raw=None):
+    body = raw if raw is not None else json.dumps(obj).encode()
+    txt = {200: "OK", 204: "No Content", 400: "Bad Request", 404: "Not Found", 409: "Conflict", 413: "Payload Too Large", 500: "Internal Server Error"}.get(code, "OK")
+    w.write(("HTTP/1.1 %d %s\r\nContent-Type: application/json\r\n%sCache-Control: no-store\r\nContent-Length: %d\r\nConnection: close\r\n\r\n" % (code, txt, CORS, len(body))).encode() + body)
+async def serve_backup(meth, target, headers, r, w):
+    u = urllib.parse.urlsplit(target); q = urllib.parse.parse_qs(u.query)
+    if meth == "OPTIONS": w.write(("HTTP/1.1 204 No Content\r\n%sContent-Length: 0\r\nConnection: close\r\n\r\n" % CORS).encode()); return
+    if u.path == "/backup/profiles/list" and meth == "GET":
+        return reply(w, 200, {"ok": True, "dir": CFG["backup_dir"], "files": [dict((bk_read(n) or {}).get("meta") or {}, file=n) for n in bk_files()]})
+    if u.path != "/backup/profiles": return reply(w, 404, {"ok": False})
+    if meth == "GET":
+        f = (q.get("file") or ["latest.json"])[0]
+        if f != "latest.json" and not BK_FILE.match(f): return reply(w, 404, {"ok": False})
+        try:
+            with open(os.path.join(CFG["backup_dir"], f), "rb") as fh: return reply(w, 200, raw=fh.read())
+        except FileNotFoundError: return reply(w, 404, {"ok": False, "reason": "none"})
+    if meth in ("PUT", "POST"):
+        n = int(headers.get("content-length") or 0)
+        if n <= 0 or n > CFG["backup_max"]: return reply(w, 413 if n > 0 else 400, {"ok": False, "reason": "size"})
+        body = await asyncio.wait_for(r.readexactly(n), 30)
+        try: code, obj = bk_put(body, (q.get("force") or ["0"])[0] == "1")
+        except Exception as e:
+            log("backup error:", type(e).__name__, e); code, obj = 500, {"ok": False, "reason": "server"}
+        return reply(w, code, obj)
+    return reply(w, 404, {"ok": False})
+
 # ---------------------------------------------------------------- HTTP front
 async def handle(r, w):
     try:
@@ -359,6 +467,10 @@ async def handle(r, w):
         if path == "/status":
             body = json.dumps(status(), indent=1).encode()
             w.write(b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: %d\r\nConnection: close\r\n\r\n" % len(body) + body); return
+        if path.startswith("/backup/") or path == "/backup":
+            await serve_backup(meth, target, headers, r, w); return
+        if meth == "OPTIONS":
+            w.write(("HTTP/1.1 204 No Content\r\n%sContent-Length: 0\r\nConnection: close\r\n\r\n" % CORS).encode()); return
         if meth not in ("GET", "HEAD") or not CFG["upstream"] or not re.match(r"^/(live|movie|series)/[^/]+/[^/]+/[\w.-]+$", path):
             w.write(b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"); return
         if path.startswith("/live/"): await serve_live(path, w)
@@ -373,6 +485,8 @@ def status():
     L, V = STATE["live"], STATE["vod"]
     s = dict(STATS); s["uptime_s"] = int(time.time() - s.pop("started")); s["upstream_set"] = bool(CFG["upstream"])
     s["config"] = {k: CFG[k] for k in ("lead", "ring_mb", "vod_ahead_mb", "gap", "idle", "prefer", "hls_variant")}
+    lm = (bk_read() or {}).get("meta") or {}
+    s["backup"] = {"version": "4.12", "copies": len(bk_files()), "latest_ts": lm.get("ts"), "latest_profiles": lm.get("profiles"), "latest_default": lm.get("default")}
     if L: s["live"] = {"stream": redact(L.key), "mode": L.mode, "clients": L.clients, "cushion_s": round(L.ring.secs(), 1), "kbps": int(L.ring.rate * 8 / 1000), "drops": L.drops, "since_data_s": round(now() - L.ring.last_data, 1)}
     if V: s["vod"] = {"file": redact(V.path), "clients": V.clients, "ahead_mb": round((V.we - V.want) / 1048576, 1), "size_mb": round((V.size or 0) / 1048576, 1)}
     return s

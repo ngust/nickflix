@@ -32,3 +32,22 @@ Then in NickFlix put the address in `config.js` → `proxyUrls: ["http://<nas>:8
 ## Test (no real IPTV)
 `python3 test/test_proxy.py` – fake provider that drops live every 12 s and VOD every 6 MB, enforces/records
 concurrent connections. Expect: continuous live stream, ≤1 provider connection, exact VOD bytes, HLS fallback.
+
+## Profile backup (NickFlix 4.12)
+NickFlix copies its profiles and settings here as a backup (the TV keeps the primary copy).
+
+| Request | |
+|---|---|
+| `GET /backup/profiles` | latest copy (404 if none); `?file=profiles-…json` for an older one |
+| `GET /backup/profiles/list` | metadata of all kept copies (time, profiles, names, score, default) |
+| `PUT` / `POST /backup/profiles[?force=1]` | store `{"keys": {"nf_…": "<raw localStorage string>"}}` |
+
+Stored in `NF_BACKUP_DIR` (default `backups/profiles/` next to `nfproxy.py`): `latest.json` + rotated
+`profiles-YYYYmmdd-HHMMSS-mmm.json` (newest `NF_BACKUP_KEEP`=12, plus always the fullest). A default state
+(one profile, no history) is refused over a real backup (409); `nf_account` is never stored.
+
+## Keep-alive / autostart (native QTS)
+`keepalive.sh` starts the proxy only when `/health` does not answer. Run it from cron every 5 minutes:
+`*/5 * * * * /share/<share>/nfproxy/keepalive.sh >/dev/null 2>&1 # nfproxy-keepalive`
+(admin: add to `/etc/config/crontab`, then `crontab /etc/config/crontab && /etc/init.d/crond.sh restart`).
+Undo: delete that line. `nfproxy.sh start|stop|status|restart|health`.

@@ -32,7 +32,7 @@ var ST_CATS = [
   { id: "picks", ic: "\uD83C\uDFB0", t: "Picks & Surprise me", d: "Today's picks, slot machine" },
   { id: "sports", ic: "\uD83C\uDFD2", t: "Sports & time", d: "NHL team, time zone" },
   { id: "playback", ic: "\u25B6\uFE0F", t: "Playback", d: "Buffer, format, home proxy" },
-  { id: "app", ic: "\u2728", t: "App & intro", d: "Intro animations, about" },
+  { id: "app", ic: "\u2728", t: "App & intro", d: "Intro, profile backup, about" },
   { id: "account", ic: "\uD83D\uDD11", t: "Account", d: "Provider login" }
 ];
 var ST_PAGE_CAT = { live: "tv", extra: "tv", vod: "content", fav: "profile" };
@@ -188,8 +188,18 @@ function stApp(inner, ln) {
   stRow(inner, ln, { key: "tog:intro", ic: "\uD83C\uDFAC", t: "Intro animation", d: "Play the NickFlix intro with sound when the app starts. Any key skips it.", get: function () { return introEnabled(); }, set: t1.set });
   stRow(inner, ln, { key: "tog:mini", ic: "\u26A1", t: "Intro before shows", d: "A 2-second sting before movies, episodes and My Media. It plays while the video loads, so it adds no wait.", get: function () { return miniEnabled(); }, set: t2.set });
   stRow(inner, ln, { key: "tog:minilive", ic: "\uD83D\uDCE1", t: "Intro before live channels too", d: "Also play the sting when you open a live channel from a row or the guide (never when flipping channels).", get: function () { return miniLiveEnabled(); }, set: t3.set });
+  inner.appendChild(ce("div", "s-sec", "Profile backup"));
+  stRow(inner, ln, { key: "bk:now", ic: "\uD83D\uDCBE", t: "Back up now", d: bkFileText() + "\n" + bkStatusText(), act: function (r) {
+    toast("Backing up\u2026"); bkUpload(true, function (ok, why) { toast(ok ? "Backed up to the NAS" + (why === "unchanged" ? " (no changes)" : "") : (why === "default_over_real" ? "Not replaced: the NAS has a fuller backup" : "Backup failed: " + (bkMeta().err || why)), 4000); setTimeout(function () { renderSettings("bk:now"); }, 600); }); } });
+  stRow(inner, ln, { key: "bk:restore", ic: "\u267B\uFE0F", t: "Restore from NAS", d: bkRemoteText() + "  \u00b7  replaces this TV's profiles, then restarts. Press OK twice.", danger: 1, act: function (r) {
+    if (!r._armed) { r._armed = true; r.classList.add("armed"); toast("Press OK again to restore from the NAS"); setTimeout(function () { r._armed = false; r.classList.remove("armed"); }, 5000); return; }
+    r._armed = false; bkRestore(function (ok, msg) { toast(msg, 4000); if (ok) setTimeout(function () { location.reload(); }, 1800); }); } });
+  stRow(inner, ln, { key: "bk:restoref", ic: "\uD83D\uDCC1", t: "Restore from TV file", d: "Uses NickFlix/nf_backup.json in the TV's shared storage. Press OK twice.", danger: 1, act: function (r) {
+    if (!r._armed) { r._armed = true; r.classList.add("armed"); toast("Press OK again to restore from the TV file"); setTimeout(function () { r._armed = false; r.classList.remove("armed"); }, 5000); return; }
+    r._armed = false; bkRestoreFile(function (ok, msg) { toast(msg, 4000); if (ok) setTimeout(function () { location.reload(); }, 1800); }); } });
+  if (!BK.remote) bkFetch(function () { if (OV.top() === ST && ST.cat === "app" && !ST.page) renderSettings("\u0000"); });
   inner.appendChild(ce("div", "s-sec", "About"));
-  inner.appendChild(ce("div", "s-note", "NickFlix 4.11  \u00b7  " + AVATARS + " avatars  \u00b7  Settings per profile: " + PF.name));
+  inner.appendChild(ce("div", "s-note", "NickFlix 4.12  \u00b7  " + AVATARS + " avatars  \u00b7  Settings per profile: " + PF.name));
 }
 function liveCodes() {
   var cnt = {}; cats.live.forEach(function (c) { if (!c.adult) cnt[c.code] = (cnt[c.code] || 0) + 1; }); return cnt;
