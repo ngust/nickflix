@@ -21,3 +21,10 @@ __pycache__/
 shots/
 .DS_Store
 Thumbs.db
+
+# proxy runtime / private
+nfproxy.env
+proxy/nfproxy.env
+*runtime-python*
+proxy/INSTALL-*.md
+*.log
