@@ -33,6 +33,8 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
 - **v4.9** Mini intro before shows (toggle), Motorsports section + Live rally racing row, Live Events ranked by significance with many more sources (ESPN + TheSportsDB).
 - **v4.10** Stability for a distant/droppy provider: Extra-stable default buffer (~15–20 s behind live), pause-and-refill, automatic quality/format step-down, format learning; optional home buffering proxy for a NAS (`proxy/`).
 - **v4.11** Settings redesign (category list + detail pane), 235 avatars in 20 groups with a categorized picker, a daily "Today's picks" row per section, and a 🎰 Surprise me slot machine (optional).
+- **v4.12–4.13** Profile backup (TV file + NAS) with auto-restore; audio language selection.
+- **v4.14** Taste seed for the Nick profile, cast/director affinity, 👎 / 👍 / 👍👍 ratings (details page + player), rotating themed rows and a daily mix, News (Canada / US / World) on the TV hub.
 
 ## Architecture
 `app/` is the Tizen web app (load order is the `<script>` order in `index.html`):
@@ -59,6 +61,10 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
 | `proxy/` | `nfproxy.py` home buffering proxy for a NAS (Docker / Container Station or native), see `proxy/README.md` |
 | `js/scrub.js` | 4.7 Netflix-style scrubbing and media-key registration |
 | `js/picks.js` | 4.11 Today's picks rows and the Surprise me slot machine |
+| `js/taste.js` | 4.14 taste seed (Nick), people (cast/director) affinity, ratings store, `tasteBoost` / daily `tsMix` |
+| `js/rate.js` | 4.14 rating buttons on the details page and the player Rate panel (▼ / GREEN) |
+| `js/themes.js` | 4.14 rotating themed rows, Because you loved, More with <person>, daily row shuffle |
+| `js/news.js` | 4.14 News tiles + Live news now on the TV hub, Canada / US / World news pages |
 
 Tools: `tools/build.py` (package), `tools/deploy.ps1` (sign + install with Tizen CLI), `tools/mock.py`
 (local IPTV/NAS mock), `tools/mkav.py` / `tools/mkav2.py` / `tools/mkav3.py` (avatars), `tools/mkart.py` (logo/icon).
@@ -97,6 +103,7 @@ python3 tools/build.py --config tests/config.test.js --out dist
 python3 tools/mock.py &          # serves dist/app on http://127.0.0.1:8099 with a fake provider + NAS
 python3 tests/tpb.py             # playback / reconnect / scrubbing (fake AVPlay)
 python3 tests/tav.py             # avatar picker
+tests/run_all.sh /tmp/nf_runall  # everything (builds, starts the mock + nfproxy, runs all tests incl. t414)
 ```
 
 ## Notes

@@ -368,7 +368,7 @@ def bk_info(keys):
         except Exception: continue
         if not isinstance(d, dict): continue
         st = d.get("stats") or {}
-        content += len(d.get("hist") or []) + len(d.get("wl") or []) + len(d.get("list") or []) + len(d.get("pos") or {}) + (1 if isinstance(st, dict) and (st.get("sec") or 0) > 0 else 0)
+        content += len(d.get("hist") or []) + len(d.get("wl") or []) + len(d.get("list") or []) + len(d.get("pos") or {}) + (1 if isinstance(st, dict) and (st.get("sec") or 0) > 0 else 0) + (len(d.get("rt") or {}) if isinstance(d.get("rt"), dict) else 0)
     names = [str(p.get("name", ""))[:40] for p in pl if isinstance(p, dict)]
     return {"profiles": len(pl), "names": names, "score": content + 5 * max(0, len(pl) - 1), "default": len(pl) <= 1 and content == 0}
 def bk_read(name="latest.json"):

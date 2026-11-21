@@ -33,7 +33,7 @@ function bkInfo(keys) {
     if (k.indexOf("nf_p_") !== 0) return;
     var d = null; try { d = JSON.parse(keys[k]); } catch (e) {}
     if (!d) return;
-    content += (d.hist || []).length + (d.wl || []).length + (d.list || []).length + Object.keys(d.pos || {}).length + ((d.stats && d.stats.sec > 0) ? 1 : 0);
+    content += (d.hist || []).length + (d.wl || []).length + (d.list || []).length + Object.keys(d.pos || {}).length + ((d.stats && d.stats.sec > 0) ? 1 : 0) + Object.keys(d.rt || {}).length;   // 4.14: ratings count, the taste seed (tp) does not
   });
   var score = content + 5 * Math.max(0, list.length - 1);
   return { profiles: list.length, names: names, score: score, def: list.length <= 1 && content === 0 };

@@ -56,7 +56,8 @@ function loadPool(type, pc) {
         else if (!o.ic && it.ic) { by[k] = it; out[out.indexOf(o)] = it; }
       }); });
       out.sort(function (a, b) { return (b.a || 0) - (a.a || 0); });
-      var keep = out.slice(0, 900).map(function (it) { var s = {}; for (var k in it) if (k !== "plot" && k !== "cast" && k !== "dir") s[k] = it[k]; return s; });
+      // 4.14: keep the first 4 cast names + director (people affinity, taste.js); still no plot
+      var keep = out.slice(0, 900).map(function (it) { var s = {}; for (var k in it) if (k === "cast") { if (it.cast) s.cast = String(it.cast).split(/\s*,\s*/).slice(0, 4).join(", "); } else if (k !== "plot") s[k] = it[k]; return s; });
       lsSet("nf_pool_" + type, { sig: sig, ts: Date.now(), items: keep });
       return out;
     });
@@ -90,12 +91,13 @@ function curatedRows(type) {
     out.forEach(function (it) { used[normTitle(it)] = 1; });
     return out;
   }
-  function wrap(fn, max) { return function () { return fn().then(function (items) { return dedupe(items, max || 30); }); }; }
+  // 4.14: tsMix (taste.js) drops "Not for me" titles and shuffles a little each day (date + profile + row title)
+  function wrap(fn, max, noMix) { return function () { var salt = this && this.title; return fn().then(function (items) { return dedupe(!noMix && typeof tsMix === "function" ? tsMix(items, salt) : items, max || 30); }); }; }
   var rows = rowsLocal(type);
   if (!en.length) return rows;
   var pc = poolFor(type, en);
   var pool = function () { return loadPool(type, pc); };
-  var aff = affinity(), hasHist = PD.hist.some(function (h) { return h.it.t === type; });
+  var aff = affinity(), hasHist = PD.hist.some(function (h) { return h.it.t === type; }) || !!PD.tp;   // 4.14: a taste seed counts as history
   var watched = {}; PD.hist.forEach(function (h) { watched[h.k] = 1; });
   var now = Date.now() / 1000;
   rows.push({ title: hasHist ? "Top Picks for " + PF.name : "Popular on NickFlix", hero: true, load: wrap(function () {
@@ -103,12 +105,14 @@ function curatedRows(type) {
       var sc = items.filter(function (it) { return !watched[itemKey(it)]; }).map(function (it) {
         var g = itemGenres(it), s = 0; g.forEach(function (x) { s += aff[x] || 0; });
         var age = it.a ? Math.max(0, (now - it.a) / 86400) : 400;
-        return { it: it, s: s * 1.5 + (ratingOK(it) ? it.r : 5) + Math.max(0, 3 - age / 60) + (it.ic ? 1 : 0) };
+        // 4.14: + people / keywords / ratings / seed (taste.js) and a small daily jitter (keeps the top, varies the rest)
+        var tb = typeof tasteBoost === "function" ? tasteBoost(it) + 1.6 * tsJit(it, "top") : 0;
+        return { it: it, s: s * 1.5 + (ratingOK(it) ? it.r : 5) + Math.max(0, 3 - age / 60) + (it.ic ? 1 : 0) + tb };
       });
       sc.sort(function (a, b) { return b.s - a.s; });
       return sc.map(function (x) { return x.it; });
     });
-  }) });
+  }, 30, true) });
   var last = null, an = typeof whAnchor === "function" ? whAnchor(type === "movies" ? "movie" : "show") : null, fin = typeof whFinished === "function" ? whFinished() : {};
   if (an && an.it && an.it.c) last = { k: an.k, it: an.it };
   else for (var i = 0; i < PD.hist.length; i++) if (PD.hist[i].it.t === type && PD.hist[i].it.c) { last = PD.hist[i]; break; }
@@ -129,7 +133,7 @@ function curatedRows(type) {
       return items.filter(function (it) { return +it.y >= THIS_YEAR - 1; }).sort(function (a, b) { return (+b.y - +a.y) || ((b.a || 0) - (a.a || 0)); });
     });
   }) });
-  rows.push({ title: "Recently Added", load: wrap(function () { return pool().then(function (items) { return items.slice().sort(byAdded); }); }) });
+  rows.push({ title: "Recently Added", load: wrap(function () { return pool().then(function (items) { return items.slice().sort(byAdded).filter(function (it) { return typeof rtDisliked !== "function" || !rtDisliked(it); }); }); }, 30, true) });
   rows.push({ title: "Top Rated", load: wrap(function () { return pool().then(function (items) { return items.filter(function (it) { return ratingOK(it) && it.r >= 7.3; }).sort(byRating); }); }) });
   var SRC = [["Netflix Originals", /NETFLIX/], ["Prime Video", /AMAZON|PRIME/], ["Apple TV+", /APPLE|APPEL/], ["Disney+", /DISNEY|DISNY/],
     ["HBO / Max", /HBO|\bMAX\b/], ["Paramount+", /PARAMOUNT/], ["Hulu", /HULU/], ["Marvel", /MARVEL/], ["DreamWorks Animation", /DREAMWORKS/]];
