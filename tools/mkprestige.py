@@ -1,0 +1,1169 @@
+# generates app/js/prestige_data.js  (title|year lists; matched against the IPTV catalogue on the TV)
+import json, sys
+L = []
+def add(id, ty, ic, title, g, items):
+    L.append({'id': id, 'ty': ty, 'ic': ic, 't': title, 'g': g, 'd': ';'.join(i.strip() for i in items.strip().split('\n') if i.strip())})
+add('m_bp', 'm', '\U0001F3C6', 'Best Picture Oscar winners', ['Drama'], '''
+Casablanca|1942
+All About Eve|1950
+On the Waterfront|1954
+The Bridge on the River Kwai|1957
+Ben-Hur|1959
+The Apartment|1960
+West Side Story|1961
+Lawrence of Arabia|1962
+My Fair Lady|1964
+The Sound of Music|1965
+A Man for All Seasons|1966
+In the Heat of the Night|1967
+Midnight Cowboy|1969
+Patton|1970
+The French Connection|1971
+The Godfather|1972
+The Sting|1973
+The Godfather Part II|1974
+One Flew Over the Cuckoo's Nest|1975
+Rocky|1976
+Annie Hall|1977
+The Deer Hunter|1978
+Kramer vs. Kramer|1979
+Ordinary People|1980
+Chariots of Fire|1981
+Gandhi|1982
+Terms of Endearment|1983
+Amadeus|1984
+Out of Africa|1985
+Platoon|1986
+The Last Emperor|1987
+Rain Man|1988
+Driving Miss Daisy|1989
+Dances with Wolves|1990
+The Silence of the Lambs|1991
+Unforgiven|1992
+Schindler's List|1993
+Forrest Gump|1994
+Braveheart|1995
+The English Patient|1996
+Titanic|1997
+Shakespeare in Love|1998
+American Beauty|1999
+Gladiator|2000
+A Beautiful Mind|2001
+Chicago|2002
+The Lord of the Rings: The Return of the King|2003
+Million Dollar Baby|2004
+Crash|2005
+The Departed|2006
+No Country for Old Men|2007
+Slumdog Millionaire|2008
+The Hurt Locker|2009
+The King's Speech|2010
+The Artist|2011
+Argo|2012
+12 Years a Slave|2013
+Birdman|2014
+Spotlight|2015
+Moonlight|2016
+The Shape of Water|2017
+Green Book|2018
+Parasite|2019
+Nomadland|2020
+CODA|2021
+Everything Everywhere All at Once|2022
+Oppenheimer|2023
+Anora|2024
+''')
+add('m_oscar', 'm', '\U0001F31F', 'Oscar winners: director, actor, actress & international', ['Drama'], '''
+The Graduate|1967
+Cabaret|1972
+Raging Bull|1980
+Reds|1981
+Wall Street|1987
+The Accused|1988
+My Left Foot|1989
+Cinema Paradiso|1988
+Misery|1990
+Philadelphia|1993
+Leaving Las Vegas|1995
+Fargo|1996
+As Good as It Gets|1997
+Life Is Beautiful|1997
+Saving Private Ryan|1998
+Boys Don't Cry|1999
+Traffic|2000
+Erin Brockovich|2000
+Crouching Tiger, Hidden Dragon|2000
+Training Day|2001
+No Man's Land|2001
+The Pianist|2002
+Monster|2003
+Mystic River|2003
+Ray|2004
+Brokeback Mountain|2005
+Capote|2005
+Walk the Line|2005
+Tsotsi|2005
+The Last King of Scotland|2006
+The Lives of Others|2006
+There Will Be Blood|2007
+La Vie en Rose|2007
+The Counterfeiters|2007
+Milk|2008
+Departures|2008
+Crazy Heart|2009
+The Blind Side|2009
+The Secret in Their Eyes|2009
+Black Swan|2010
+In a Better World|2010
+The Iron Lady|2011
+A Separation|2011
+Life of Pi|2012
+Silver Linings Playbook|2012
+Amour|2012
+Lincoln|2012
+Gravity|2013
+Dallas Buyers Club|2013
+Blue Jasmine|2013
+The Great Beauty|2013
+Ida|2013
+The Theory of Everything|2014
+Still Alice|2014
+The Revenant|2015
+Room|2015
+Son of Saul|2015
+La La Land|2016
+Manchester by the Sea|2016
+The Salesman|2016
+Darkest Hour|2017
+Three Billboards Outside Ebbing, Missouri|2017
+A Fantastic Woman|2017
+Roma|2018
+Bohemian Rhapsody|2018
+The Favourite|2018
+Joker|2019
+Judy|2019
+The Father|2020
+Another Round|2020
+King Richard|2021
+The Power of the Dog|2021
+Drive My Car|2021
+The Eyes of Tammy Faye|2021
+The Whale|2022
+All Quiet on the Western Front|2022
+Poor Things|2023
+The Zone of Interest|2023
+The Brutalist|2024
+I'm Still Here|2024
+''')
+add('m_doc', 'm', '\U0001F3A5', 'Oscar-winning & landmark documentaries', ['Documentary'], '''
+When We Were Kings|1996
+Hoop Dreams|1994
+Bowling for Columbine|2002
+The Fog of War|2003
+Born into Brothels|2004
+March of the Penguins|2005
+An Inconvenient Truth|2006
+Taxi to the Dark Side|2007
+Man on Wire|2008
+The Cove|2009
+Inside Job|2010
+Senna|2010
+Undefeated|2011
+Searching for Sugar Man|2012
+20 Feet from Stardom|2013
+Citizenfour|2014
+Amy|2015
+O.J.: Made in America|2016
+Icarus|2017
+Free Solo|2018
+American Factory|2019
+Apollo 11|2019
+My Octopus Teacher|2020
+Summer of Soul|2021
+Navalny|2022
+20 Days in Mariupol|2023
+No Other Land|2024
+Fahrenheit 9/11|2004
+Blackfish|2013
+The Act of Killing|2012
+Grizzly Man|2005
+Jiro Dreams of Sushi|2011
+Exit Through the Gift Shop|2010
+Super Size Me|2004
+Supersize Me|2004
+Hoop Dreams|1994
+Touching the Void|2003
+Restrepo|2010
+13th|2016
+Won't You Be My Neighbor?|2018
+They Shall Not Grow Old|2018
+The Social Dilemma|2020
+Schumacher|2021
+McLaren|2017
+Williams|2017
+1|2013
+102 Minutes That Changed America|2008
+''')
+add('m_palme', 'm', '\U0001F334', "Cannes Palme d'Or winners", ['Drama'], '''
+The Third Man|1949
+La Dolce Vita|1960
+The Leopard|1963
+Blow-Up|1966
+If....|1968
+M*A*S*H|1970
+The Conversation|1974
+Taxi Driver|1976
+Apocalypse Now|1979
+All That Jazz|1979
+The Tin Drum|1979
+Missing|1982
+Paris, Texas|1984
+The Mission|1986
+Pelle the Conqueror|1987
+Sex, Lies, and Videotape|1989
+Wild at Heart|1990
+Barton Fink|1991
+The Piano|1993
+Farewell My Concubine|1993
+Pulp Fiction|1994
+Underground|1995
+Secrets & Lies|1996
+Taste of Cherry|1997
+Eternity and a Day|1998
+Rosetta|1999
+Dancer in the Dark|2000
+The Son's Room|2001
+The Pianist|2002
+Elephant|2003
+Fahrenheit 9/11|2004
+The Wind That Shakes the Barley|2006
+4 Months, 3 Weeks and 2 Days|2007
+The Class|2008
+The White Ribbon|2009
+The Tree of Life|2011
+Amour|2012
+Blue Is the Warmest Colour|2013
+Blue Is the Warmest Color|2013
+Winter Sleep|2014
+Dheepan|2015
+I, Daniel Blake|2016
+The Square|2017
+Shoplifters|2018
+Parasite|2019
+Titane|2021
+Triangle of Sadness|2022
+Anatomy of a Fall|2023
+Anora|2024
+It Was Just an Accident|2025
+''')
+add('m_fest', 'm', '\U0001F981', 'Venice, Berlin & Sundance winners', ['Drama'], '''
+Rashomon|1950
+12 Angry Men|1957
+Wild Strawberries|1957
+The Battle of Algiers|1966
+Belle de Jour|1967
+Atlantic City|1980
+Gloria|1980
+Au Revoir les Enfants|1987
+Rain Man|1988
+Music Box|1989
+Short Cuts|1993
+Three Colours: Blue|1993
+In the Name of the Father|1993
+Sense and Sensibility|1995
+The People vs. Larry Flynt|1996
+Hana-bi|1997
+Central Station|1998
+The Thin Red Line|1998
+Magnolia|1999
+Monsoon Wedding|2001
+Spirited Away|2001
+The Magdalene Sisters|2002
+Bloody Sunday|2002
+The Return|2003
+Head-On|2004
+Vera Drake|2004
+Brokeback Mountain|2005
+Still Life|2006
+Lust, Caution|2007
+Elite Squad|2007
+The Wrestler|2008
+Lebanon|2009
+Somewhere|2010
+A Separation|2011
+Faust|2011
+Pieta|2012
+Black Coal, Thin Ice|2014
+A Pigeon Sat on a Branch Reflecting on Existence|2014
+Taxi Tehran|2015
+Fire at Sea|2016
+The Shape of Water|2017
+Roma|2018
+Joker|2019
+Nomadland|2020
+There Is No Evil|2020
+Happening|2021
+All the Beauty and the Bloodshed|2022
+Poor Things|2023
+The Room Next Door|2024
+Dahomey|2024
+Blood Simple|1984
+The Brothers McMullen|1995
+Welcome to the Dollhouse|1995
+Girlfight|2000
+You Can Count on Me|2000
+The Believer|2001
+American Splendor|2003
+Primer|2004
+Capturing the Friedmans|2003
+Why We Fight|2005
+Quinceañera|2006
+Frozen River|2008
+Precious|2009
+We Live in Public|2009
+Winter's Bone|2010
+Restrepo|2010
+Like Crazy|2011
+Beasts of the Southern Wild|2012
+The House I Live In|2012
+Fruitvale Station|2013
+Whiplash|2014
+Rich Hill|2014
+Me and Earl and the Dying Girl|2015
+The Wolfpack|2015
+Weiner|2016
+I Don't Feel at Home in This World Anymore|2017
+The Miseducation of Cameron Post|2018
+One Child Nation|2019
+Clemency|2019
+Minari|2020
+Boys State|2020
+CODA|2021
+Summer of Soul|2021
+A Thousand and One|2023
+''')
+add('m_tiff', 'm', '\U0001F341', "TIFF People's Choice winners", ['Drama', 'Comedy'], '''
+Chariots of Fire|1981
+The Big Chill|1983
+Places in the Heart|1984
+The Princess Bride|1987
+Roger & Me|1989
+Shine|1996
+Life Is Beautiful|1997
+American Beauty|1999
+Crouching Tiger, Hidden Dragon|2000
+Amélie|2001
+Whale Rider|2002
+Zatoichi|2003
+Hotel Rwanda|2004
+Tsotsi|2005
+Bella|2006
+Eastern Promises|2007
+Slumdog Millionaire|2008
+Precious|2009
+The King's Speech|2010
+Where Do We Go Now?|2011
+Silver Linings Playbook|2012
+12 Years a Slave|2013
+The Imitation Game|2014
+Room|2015
+La La Land|2016
+Three Billboards Outside Ebbing, Missouri|2017
+Green Book|2018
+Jojo Rabbit|2019
+Nomadland|2020
+Belfast|2021
+The Fabelmans|2022
+American Fiction|2023
+The Life of Chuck|2024
+Hamnet|2025
+''')
+add('m_imdb', 'm', '\U0001F3C5', 'IMDb all-time top 100', ['Drama', 'Thriller & Crime'], '''
+The Shawshank Redemption|1994
+The Godfather|1972
+The Dark Knight|2008
+The Godfather Part II|1974
+12 Angry Men|1957
+The Lord of the Rings: The Return of the King|2003
+Schindler's List|1993
+Pulp Fiction|1994
+The Lord of the Rings: The Fellowship of the Ring|2001
+The Good, the Bad and the Ugly|1966
+Forrest Gump|1994
+The Lord of the Rings: The Two Towers|2002
+Fight Club|1999
+Inception|2010
+Star Wars: Episode V - The Empire Strikes Back|1980
+The Empire Strikes Back|1980
+The Matrix|1999
+Goodfellas|1990
+Interstellar|2014
+One Flew Over the Cuckoo's Nest|1975
+Se7en|1995
+Seven|1995
+It's a Wonderful Life|1946
+The Silence of the Lambs|1991
+Seven Samurai|1954
+Saving Private Ryan|1998
+City of God|2002
+Life Is Beautiful|1997
+The Green Mile|1999
+Terminator 2: Judgment Day|1991
+Star Wars|1977
+Star Wars: Episode IV - A New Hope|1977
+Back to the Future|1985
+Spirited Away|2001
+The Pianist|2002
+Parasite|2019
+Psycho|1960
+Gladiator|2000
+The Lion King|1994
+Léon: The Professional|1994
+The Professional|1994
+The Departed|2006
+American History X|1998
+Whiplash|2014
+The Prestige|2006
+Grave of the Fireflies|1988
+The Usual Suspects|1995
+Casablanca|1942
+The Intouchables|2011
+Cinema Paradiso|1988
+Modern Times|1936
+Alien|1979
+Rear Window|1954
+Once Upon a Time in the West|1968
+Django Unchained|2012
+City Lights|1931
+Apocalypse Now|1979
+Memento|2000
+WALL-E|2008
+Raiders of the Lost Ark|1981
+Avengers: Infinity War|2018
+Avengers: Endgame|2019
+The Lives of Others|2006
+Sunset Boulevard|1950
+Paths of Glory|1957
+Spider-Man: Into the Spider-Verse|2018
+The Shining|1980
+The Great Dictator|1940
+Aliens|1986
+Inglourious Basterds|2009
+The Dark Knight Rises|2012
+Oldboy|2003
+Coco|2017
+Amadeus|1984
+Toy Story|1995
+Dr. Strangelove|1964
+Braveheart|1995
+Das Boot|1981
+American Beauty|1999
+Joker|2019
+Good Will Hunting|1997
+Princess Mononoke|1997
+Your Name.|2016
+Once Upon a Time in America|1984
+Requiem for a Dream|2000
+Toy Story 3|2010
+Star Wars: Episode VI - Return of the Jedi|1983
+Return of the Jedi|1983
+Capernaum|2018
+Eternal Sunshine of the Spotless Mind|2004
+2001: A Space Odyssey|1968
+Reservoir Dogs|1992
+Come and See|1985
+Citizen Kane|1941
+Lawrence of Arabia|1962
+North by Northwest|1959
+Vertigo|1958
+Amélie|2001
+A Clockwork Orange|1971
+Full Metal Jacket|1987
+Double Indemnity|1944
+Scarface|1983
+Taxi Driver|1976
+Heat|1995
+Up|2009
+The Sting|1973
+To Kill a Mockingbird|1962
+Snatch|2000
+Oppenheimer|2023
+Dune: Part Two|2024
+Top Gun: Maverick|2022
+Spider-Man: Across the Spider-Verse|2023
+The Wolf of Wall Street|2013
+L.A. Confidential|1997
+Indiana Jones and the Last Crusade|1989
+Die Hard|1988
+Batman Begins|2005
+The Truman Show|1998
+The Thing|1982
+No Country for Old Men|2007
+Shutter Island|2010
+Jurassic Park|1993
+There Will Be Blood|2007
+Casino|1995
+The Sixth Sense|1999
+Kill Bill: Vol. 1|2003
+The Big Lebowski|1998
+Prisoners|2013
+Mad Max: Fury Road|2015
+The Grand Budapest Hotel|2014
+Ford v Ferrari|2019
+Rush|2013
+Gone Girl|2014
+Catch Me If You Can|2002
+Blade Runner|1982
+Lock, Stock and Two Smoking Barrels|1998
+Trainspotting|1996
+''')
+add('m_critics', 'm', '\U0001F345', "Critics' all-time greats", ['Drama'], '''
+Citizen Kane|1941
+Vertigo|1958
+Tokyo Story|1953
+The Rules of the Game|1939
+2001: A Space Odyssey|1968
+Sunrise|1927
+The Searchers|1956
+Singin' in the Rain|1952
+Seven Samurai|1954
+Persona|1966
+8½|1963
+In the Mood for Love|2000
+Mulholland Drive|2001
+Bicycle Thieves|1948
+Breathless|1960
+The 400 Blows|1959
+Rashomon|1950
+Some Like It Hot|1959
+The Godfather|1972
+Chinatown|1974
+Psycho|1960
+Rear Window|1954
+Get Out|2017
+Moonlight|2016
+Boyhood|2014
+Lady Bird|2017
+Portrait of a Lady on Fire|2019
+Metropolis|1927
+Battleship Potemkin|1925
+Pather Panchali|1955
+The Wizard of Oz|1939
+The Night of the Hunter|1955
+Do the Right Thing|1989
+Jaws|1975
+E.T. the Extra-Terrestrial|1982
+Touch of Evil|1958
+Annie Hall|1977
+Manhattan|1979
+Nashville|1975
+The Conversation|1974
+Barry Lyndon|1975
+Children of Men|2006
+Zodiac|2007
+The Social Network|2010
+Inside Llewyn Davis|2013
+Past Lives|2023
+Ratatouille|2007
+Pan's Labyrinth|2006
+Before Sunrise|1995
+Before Sunset|2004
+Raging Bull|1980
+Taxi Driver|1976
+Lawrence of Arabia|1962
+Casablanca|1942
+Goodfellas|1990
+Apocalypse Now|1979
+The Third Man|1949
+Sunset Boulevard|1950
+All About Eve|1950
+Alien|1979
+Blade Runner|1982
+''')
+add('m_afi', 'm', '\U0001F1FA\U0001F1F8', "AFI's 100 greatest American films", ['Drama'], '''
+Citizen Kane|1941
+The Godfather|1972
+Casablanca|1942
+Raging Bull|1980
+Singin' in the Rain|1952
+Gone with the Wind|1939
+Lawrence of Arabia|1962
+Schindler's List|1993
+Vertigo|1958
+The Wizard of Oz|1939
+City Lights|1931
+The Searchers|1956
+Star Wars|1977
+Psycho|1960
+2001: A Space Odyssey|1968
+Sunset Boulevard|1950
+The Graduate|1967
+The General|1926
+On the Waterfront|1954
+It's a Wonderful Life|1946
+Chinatown|1974
+Some Like It Hot|1959
+The Grapes of Wrath|1940
+E.T. the Extra-Terrestrial|1982
+To Kill a Mockingbird|1962
+Mr. Smith Goes to Washington|1939
+High Noon|1952
+All About Eve|1950
+Double Indemnity|1944
+Apocalypse Now|1979
+The Maltese Falcon|1941
+The Godfather Part II|1974
+One Flew Over the Cuckoo's Nest|1975
+Annie Hall|1977
+The Bridge on the River Kwai|1957
+The Best Years of Our Lives|1946
+The Treasure of the Sierra Madre|1948
+Dr. Strangelove|1964
+The Sound of Music|1965
+King Kong|1933
+Bonnie and Clyde|1967
+Midnight Cowboy|1969
+The Philadelphia Story|1940
+Shane|1953
+It Happened One Night|1934
+A Streetcar Named Desire|1951
+Rear Window|1954
+The Lord of the Rings: The Fellowship of the Ring|2001
+West Side Story|1961
+Taxi Driver|1976
+The Deer Hunter|1978
+M*A*S*H|1970
+North by Northwest|1959
+Jaws|1975
+Rocky|1976
+The Gold Rush|1925
+Nashville|1975
+Duck Soup|1933
+American Graffiti|1973
+Cabaret|1972
+Network|1976
+The African Queen|1951
+Raiders of the Lost Ark|1981
+Who's Afraid of Virginia Woolf?|1966
+Unforgiven|1992
+Tootsie|1982
+A Clockwork Orange|1971
+Saving Private Ryan|1998
+The Shawshank Redemption|1994
+Butch Cassidy and the Sundance Kid|1969
+The Silence of the Lambs|1991
+In the Heat of the Night|1967
+Forrest Gump|1994
+All the President's Men|1976
+Modern Times|1936
+The Wild Bunch|1969
+The Apartment|1960
+Spartacus|1960
+Titanic|1997
+Easy Rider|1969
+Platoon|1986
+12 Angry Men|1957
+Bringing Up Baby|1938
+The Sixth Sense|1999
+Sophie's Choice|1982
+Goodfellas|1990
+The French Connection|1971
+Pulp Fiction|1994
+The Last Picture Show|1971
+Do the Right Thing|1989
+Blade Runner|1982
+Toy Story|1995
+Ben-Hur|1959
+''')
+add('m_modern', 'm', '\U0001F3AC', 'Modern classics', ['Drama', 'Thriller & Crime'], '''
+Mulholland Drive|2001
+In the Mood for Love|2000
+There Will Be Blood|2007
+No Country for Old Men|2007
+Children of Men|2006
+Zodiac|2007
+The Social Network|2010
+Oldboy|2003
+Memories of Murder|2003
+Pan's Labyrinth|2006
+City of God|2002
+The Lives of Others|2006
+A Separation|2011
+The Master|2012
+Under the Skin|2013
+Drive|2011
+The Tree of Life|2011
+Phantom Thread|2017
+Portrait of a Lady on Fire|2019
+Uncut Gems|2019
+Burning|2018
+Aftersun|2022
+Synecdoche, New York|2008
+Lost in Translation|2003
+Eternal Sunshine of the Spotless Mind|2004
+Punch-Drunk Love|2002
+Magnolia|1999
+Boogie Nights|1997
+Being John Malkovich|1999
+Adaptation.|2002
+Requiem for a Dream|2000
+Memento|2000
+Sexy Beast|2000
+Before Midnight|2013
+Her|2013
+Ex Machina|2014
+Arrival|2016
+Sicario|2015
+Prisoners|2013
+Nightcrawler|2014
+Moon|2009
+The Handmaiden|2016
+Hereditary|2018
+Call Me by Your Name|2017
+Manchester by the Sea|2016
+The Lighthouse|2019
+Marriage Story|2019
+The Banshees of Inisherin|2022
+Tár|2022
+Killers of the Flower Moon|2023
+The Holdovers|2023
+The Royal Tenenbaums|2001
+Rushmore|1998
+Fantastic Mr. Fox|2009
+Inherent Vice|2014
+Blade Runner 2049|2017
+Mad Max: Fury Road|2015
+Whiplash|2014
+Heat|1995
+In Bruges|2008
+The Departed|2006
+Inside Man|2006
+The Town|2010
+Hell or High Water|2016
+''')
+add('m_globe', 'm', '\U0001F310', 'Golden Globe Best Picture winners', ['Drama', 'Comedy'], '''
+Avatar|2009
+The Social Network|2010
+The Descendants|2011
+Boyhood|2014
+The Revenant|2015
+Moonlight|2016
+Three Billboards Outside Ebbing, Missouri|2017
+Bohemian Rhapsody|2018
+1917|2019
+Nomadland|2020
+The Power of the Dog|2021
+The Fabelmans|2022
+Oppenheimer|2023
+The Brutalist|2024
+The Hangover|2009
+The Kids Are All Right|2010
+The Artist|2011
+Les Misérables|2012
+American Hustle|2013
+The Grand Budapest Hotel|2014
+The Martian|2015
+La La Land|2016
+Lady Bird|2017
+Green Book|2018
+Once Upon a Time in Hollywood|2019
+Borat Subsequent Moviefilm|2020
+West Side Story|2021
+The Banshees of Inisherin|2022
+Poor Things|2023
+Babel|2006
+Atonement|2007
+Slumdog Millionaire|2008
+Brokeback Mountain|2005
+The Aviator|2004
+The Hours|2002
+A Beautiful Mind|2001
+Gladiator|2000
+American Beauty|1999
+Saving Private Ryan|1998
+Titanic|1997
+The English Patient|1996
+Sense and Sensibility|1995
+Forrest Gump|1994
+Schindler's List|1993
+Scent of a Woman|1992
+Bugsy|1991
+Dances with Wolves|1990
+Born on the Fourth of July|1989
+Rain Man|1988
+Platoon|1986
+Sideways|2004
+Walk the Line|2005
+Dreamgirls|2006
+Vicky Cristina Barcelona|2008
+Chicago|2002
+Moulin Rouge!|2001
+Almost Famous|2000
+Toy Story 2|1999
+Shakespeare in Love|1998
+As Good as It Gets|1997
+Babe|1995
+The Lion King|1994
+Mrs. Doubtfire|1993
+The Player|1992
+Beauty and the Beast|1991
+Driving Miss Daisy|1989
+''')
+# ---------------- shows
+add('s_emmyd', 's', '\U0001F3C6', 'Emmy-winning dramas', ['Drama', 'Crime'], '''
+Hill Street Blues|1981
+L.A. Law|1986
+Northern Exposure|1990
+NYPD Blue|1993
+ER|1994
+Law & Order|1990
+The Practice|1997
+The West Wing|1999
+The Sopranos|1999
+24|2001
+Lost|2004
+Mad Men|2007
+Breaking Bad|2008
+Homeland|2011
+Game of Thrones|2011
+The Handmaid's Tale|2017
+Succession|2018
+The Crown|2016
+Shōgun|2024
+Shogun|2024
+The Pitt|2025
+Band of Brothers|2001
+Angels in America|2003
+John Adams|2008
+The Pacific|2010
+Fargo|2014
+The People v. O. J. Simpson: American Crime Story|2016
+American Crime Story|2016
+Big Little Lies|2017
+The Assassination of Gianni Versace: American Crime Story|2018
+Chernobyl|2019
+Watchmen|2019
+The Queen's Gambit|2020
+The White Lotus|2021
+Beef|2023
+Baby Reindeer|2024
+Adolescence|2025
+Olive Kitteridge|2014
+Roots|1977
+Lonesome Dove|1989
+''')
+add('s_emmyc', 's', '\U0001F602', 'Emmy-winning comedies', ['Comedy'], '''
+All in the Family|1971
+M*A*S*H|1972
+Barney Miller|1975
+Taxi|1978
+Cheers|1982
+The Cosby Show|1984
+The Golden Girls|1985
+The Wonder Years|1988
+Murphy Brown|1988
+Seinfeld|1989
+Frasier|1993
+Everybody Loves Raymond|1996
+Ally McBeal|1997
+Will & Grace|1998
+Sex and the City|1998
+Arrested Development|2003
+The Office|2005
+30 Rock|2006
+Modern Family|2009
+Veep|2012
+Fleabag|2016
+The Marvelous Mrs. Maisel|2017
+Schitt's Creek|2015
+Ted Lasso|2020
+Hacks|2021
+The Bear|2022
+The Studio|2025
+''')
+add('s_globe', 's', '\U0001F310', 'Golden Globe-winning series', ['Drama', 'Comedy'], '''
+The X-Files|1993
+The Sopranos|1999
+Six Feet Under|2001
+Mad Men|2007
+Boardwalk Empire|2010
+Homeland|2011
+Breaking Bad|2008
+The Affair|2014
+Mr. Robot|2015
+The Crown|2016
+The Handmaid's Tale|2017
+The Americans|2013
+Succession|2018
+Shōgun|2024
+Shogun|2024
+Lost|2004
+24|2001
+Nip/Tuck|2003
+Grey's Anatomy|2005
+Seinfeld|1989
+Frasier|1993
+Sex and the City|1998
+Curb Your Enthusiasm|2000
+Desperate Housewives|2004
+Ugly Betty|2006
+Extras|2005
+30 Rock|2006
+Glee|2009
+Modern Family|2009
+Girls|2012
+Brooklyn Nine-Nine|2013
+Transparent|2014
+Atlanta|2016
+The Marvelous Mrs. Maisel|2017
+The Kominsky Method|2018
+Fleabag|2016
+Schitt's Creek|2015
+Hacks|2021
+Abbott Elementary|2021
+The Bear|2022
+The Office|2001
+Chernobyl|2019
+The Queen's Gambit|2020
+Big Little Lies|2017
+The White Lotus|2021
+Beef|2023
+Baby Reindeer|2024
+Adolescence|2025
+Fargo|2014
+''')
+add('s_bafta', 's', '\U0001F1EC\U0001F1E7', 'BAFTA TV award winners', ['Drama', 'Comedy'], '''
+The Office|2001
+Fawlty Towers|1975
+Blackadder Goes Forth|1989
+Blackadder|1983
+Only Fools and Horses|1981
+Absolutely Fabulous|1992
+Father Ted|1995
+The Royle Family|1998
+Peep Show|2003
+The Thick of It|2005
+Gavin & Stacey|2007
+Fleabag|2016
+Derry Girls|2018
+Detectorists|2014
+Inside No. 9|2014
+This Country|2017
+Sherlock|2010
+Line of Duty|2012
+Happy Valley|2014
+Broadchurch|2013
+Peaky Blinders|2013
+Doctor Who|2005
+Life on Mars|2006
+Spooks|2002
+Prime Suspect|1991
+Cracker|1993
+Our Friends in the North|1996
+Shameless|2004
+Skins|2007
+This Is England '86|2010
+Top Boy|2011
+Killing Eve|2018
+I May Destroy You|2020
+Blue Planet II|2017
+Planet Earth II|2016
+Baby Reindeer|2024
+Blue Lights|2023
+Mr Bates vs The Post Office|2024
+Adolescence|2025
+Chernobyl|2019
+Breaking Bad|2008
+The Wire|2002
+Succession|2018
+''')
+add('s_imdb', 's', '\U0001F3C5', 'IMDb top-rated TV', ['Drama', 'Documentary'], '''
+Planet Earth II|2016
+Breaking Bad|2008
+Planet Earth|2006
+Band of Brothers|2001
+Chernobyl|2019
+The Wire|2002
+Avatar: The Last Airbender|2005
+Blue Planet II|2017
+The Sopranos|1999
+Cosmos: A Spacetime Odyssey|2014
+Cosmos|1980
+Our Planet|2019
+Game of Thrones|2011
+Bluey|2018
+The World at War|1973
+Fullmetal Alchemist: Brotherhood|2009
+Rick and Morty|2013
+Life|2009
+The Last Dance|2020
+Attack on Titan|2013
+The Office|2005
+The Twilight Zone|1959
+Arcane|2021
+Sherlock|2010
+The Vietnam War|2017
+Better Call Saul|2015
+Firefly|2002
+Frozen Planet|2011
+True Detective|2014
+Death Note|2006
+Seinfeld|1989
+Batman: The Animated Series|1992
+Friends|1994
+Gravity Falls|2012
+Only Fools and Horses|1981
+Succession|2018
+Fargo|2014
+Twin Peaks|1990
+Severance|2022
+The Simpsons|1989
+Monty Python's Flying Circus|1969
+Fawlty Towers|1975
+Peaky Blinders|2013
+Cowboy Bebop|1998
+The Last of Us|2023
+House of Cards|2013
+Mad Men|2007
+Six Feet Under|2001
+Rome|2005
+Narcos|2015
+Dark|2017
+Stranger Things|2016
+Black Mirror|2011
+Mr. Robot|2015
+Shōgun|2024
+Shogun|2024
+House|2004
+Dexter|2006
+The Mandalorian|2019
+Andor|2022
+Arrested Development|2003
+Curb Your Enthusiasm|2000
+It's Always Sunny in Philadelphia|2005
+South Park|1997
+Freaks and Geeks|1999
+Boardwalk Empire|2010
+Deadwood|2004
+The Shield|2002
+Oz|1997
+The X-Files|1993
+Lost|2004
+The West Wing|1999
+Westworld|2016
+Mindhunter|2017
+Ozark|2017
+The Boys|2019
+The Bear|2022
+Downton Abbey|2010
+The Crown|2016
+Top Gear|2002
+The Grand Tour|2016
+Daredevil|2015
+Line of Duty|2012
+Blackadder Goes Forth|1989
+Formula 1: Drive to Survive|2019
+How It's Made|2001
+Making a Murderer|2015
+''')
+add('s_peabody', 's', '\U0001F396', 'Peabody Award winners', ['Drama', 'Comedy'], '''
+Hill Street Blues|1981
+Twin Peaks|1990
+Northern Exposure|1990
+Seinfeld|1989
+The Simpsons|1989
+The Sopranos|1999
+The Daily Show|1996
+South Park|1997
+Lost|2004
+The Office|2005
+Friday Night Lights|2006
+Planet Earth|2006
+Mad Men|2007
+Breaking Bad|2008
+Parks and Recreation|2009
+Orange Is the New Black|2013
+Last Week Tonight with John Oliver|2014
+Black-ish|2014
+Mr. Robot|2015
+The Americans|2013
+Better Call Saul|2015
+Atlanta|2016
+Fleabag|2016
+Succession|2018
+Chernobyl|2019
+Watchmen|2019
+I May Destroy You|2020
+Reservation Dogs|2021
+Station Eleven|2021
+Abbott Elementary|2021
+The Bear|2022
+''')
+add('s_great', 's', '\U0001F4FA', 'Greatest TV of all time', ['Drama', 'Crime', 'Comedy'], '''
+The Sopranos|1999
+The Wire|2002
+Breaking Bad|2008
+Mad Men|2007
+Seinfeld|1989
+Fleabag|2016
+The Simpsons|1989
+Twin Peaks|1990
+Cheers|1982
+The Twilight Zone|1959
+Deadwood|2004
+The Leftovers|2014
+Succession|2018
+Six Feet Under|2001
+Arrested Development|2003
+Curb Your Enthusiasm|2000
+Freaks and Geeks|1999
+Friday Night Lights|2006
+Better Call Saul|2015
+Game of Thrones|2011
+The Office|2001
+Fawlty Towers|1975
+Monty Python's Flying Circus|1969
+Band of Brothers|2001
+Lost|2004
+The Shield|2002
+Battlestar Galactica|2004
+The X-Files|1993
+Buffy the Vampire Slayer|1997
+Atlanta|2016
+The Americans|2013
+Veep|2012
+Chernobyl|2019
+Barry|2018
+Severance|2022
+Mr. Robot|2015
+The West Wing|1999
+Frasier|1993
+M*A*S*H|1972
+All in the Family|1971
+Star Trek: The Next Generation|1987
+Oz|1997
+ER|1994
+Homicide: Life on the Street|1993
+Peep Show|2003
+The Thick of It|2005
+Black Mirror|2011
+True Detective|2014
+Fargo|2014
+Watchmen|2019
+Stranger Things|2016
+BoJack Horseman|2014
+Halt and Catch Fire|2014
+Justified|2010
+Boardwalk Empire|2010
+Rome|2005
+Andor|2022
+Shōgun|2024
+Shogun|2024
+The Last of Us|2023
+Mare of Easttown|2021
+Normal People|2020
+The Mandalorian|2019
+''')
+out = '/* NickFlix 4.15 - prestige collections (generated by tools/mkprestige.py): "Title|Year;..." per list.\n   Matched on the TV against the IPTV catalogue by normalised title + year (prestige.js). */\n"use strict";\nvar PR_LISTS = ' + json.dumps(L, ensure_ascii=False, indent=0) + ';\n'
+open(sys.argv[1], 'w', encoding='utf-8').write(out)
+print(len(L), 'lists', sum(len(x['d'].split(';')) for x in L), 'entries')

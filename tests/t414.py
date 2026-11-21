@@ -139,7 +139,7 @@ with sync_playwright() as p:
     # ---- 1. seed
     tp = ev('()=>PD.tp && {seed:PD.tp.seed,v:PD.tp.v,ts:PD.tp.ts,g:PD.tp.gen["Thriller & Crime"],sf:PD.tp.gen["Sci-Fi & Fantasy"],mando:PD.tp.tm["series:82856"],pp:PD.tp.pp["pedro pascal"],n:Object.keys(PD.tp.tl).length}')
     R['seed'] = tp
-    chk('seed_applied', tp and tp['seed'] == 'nick-2026-11' and tp['n'] == 30 and tp['mando'] == 2)
+    chk('seed_applied', tp and tp['seed'] == 'nick-2026-11' and tp['n'] == 32 and tp['mando'] == 2)
     mg = ev('()=>[PD.hist.length, PD.wl.length, PD.stats.sec, PD.hist[0]&&PD.hist[0].k]')
     chk('seed_merges_history', mg[1] == 1 and mg[2] >= 4800 and 'movies:999001' in [mg[3]] , mg)
     chk('affinity_has_seed', ev('()=>affinity()["Thriller & Crime"]>3 && affinity()["Comedy"]>2'))
@@ -181,7 +181,7 @@ with sync_playwright() as p:
     chk('mix_next_day_differs_keeps_top', mix[0] != mix[2] and mix[0][:2] == [0, 1] and mix[2][:2] == [0, 1] and set(mix[0][:10]) <= set(range(18)), mix)
     # ---- 4. details page rating buttons
     ev('()=>{var it=null;cache["movies:102"].forEach(x=>{if(x.n==="Goodfellas")it=x});openDetails(it)}'); time.sleep(2.5)
-    chk('rate_buttons_on_details', ev('()=>document.querySelectorAll("#d-body .btn.rate").length') == 3)
+    chk('rate_buttons_on_details', ev('()=>document.querySelectorAll("#d-body .btn.rate").length') == 4)   # 4.15: + Never show
     nb = ev('()=>D.ln.lines[0].items.length')
     for _ in range(nb - 2): pg.keyboard.press('ArrowRight'); time.sleep(0.15)   # Play, My List, 3 rating buttons, Back -> on Love it
     pg.keyboard.press('ArrowLeft'); time.sleep(0.2)  # -> I like this

@@ -9,13 +9,13 @@
      Love > Like; Not for me demotes the title hard (and hides it from Today's picks / themed rows) and its genres lightly.
    Everything stays per profile in localStorage and is included in the 4.12 profile backup (nf_p_<id>). */
 "use strict";
-var TS_VER = 1;
+var TS_VER = 2;   // 4.15: v2 adds documentaries / motorsport / mountain biking / space westerns, a Quebec penalty and stronger weights
 var TS_SEED = {
   id: "nick-2026-11", re: /^nick\b/i,
   // genre weights (category genres from core.js GENRES + TMDB/provider genre words)
   gen: { "Thriller & Crime": 95, "Crime": 85, "Comedy": 70, "Drama": 55, "Sci-Fi & Fantasy": 80, "Sci-Fi": 60, "Science Fiction": 50, "Fantasy": 25,
-    "Documentary": 75, "Action & Adventure": 55, "Action": 40, "Adventure": 30, "Mystery": 35, "Western": 30, "War & History": 30, "War": 15,
-    "Politics": 30, "Animation & Anime": 15, "Animation": 15, "Reality": 10 },
+    "Documentary": 92, "Action & Adventure": 55, "Action": 40, "Adventure": 30, "Mystery": 35, "Western": 42, "War & History": 48, "War": 20,
+    "Politics": 48, "History": 40, "Sport": 35, "Sports": 35, "Animation & Anime": 15, "Animation": 15, "Reality": 10 },
   // [title, type, year, tmdb, weight (Love = 2), genres, people]
   titles: [
     ["Fight Club", "movies", 1999, 550, 1, ["Drama", "Thriller & Crime"], ["Brad Pitt", "Edward Norton", "Helena Bonham Carter", "David Fincher"]],
@@ -35,7 +35,7 @@ var TS_SEED = {
     ["Breaking Bad", "series", 2008, 1396, 1, ["Drama", "Crime", "Thriller & Crime"], ["Bryan Cranston", "Aaron Paul", "Anna Gunn", "Vince Gilligan"]],
     ["Game of Thrones", "series", 2011, 1399, 1, ["Sci-Fi & Fantasy", "Drama", "Action & Adventure"], ["Peter Dinklage", "Emilia Clarke", "Kit Harington", "Lena Headey"]],
     ["Seinfeld", "series", 1989, 1400, 1, ["Comedy"], ["Jerry Seinfeld", "Julia Louis-Dreyfus", "Jason Alexander", "Michael Richards", "Larry David"]],
-    ["How It's Made", "series", 2001, 1749, 1, ["Documentary"], []],
+    ["How It's Made", "series", 2001, 1749, 2, ["Documentary"], []],
     ["Rick and Morty", "series", 2013, 60625, 1, ["Animation", "Comedy", "Sci-Fi & Fantasy"], ["Justin Roiland", "Chris Parnell", "Dan Harmon"]],
     ["Better Call Saul", "series", 2015, 60059, 1, ["Crime", "Drama", "Thriller & Crime"], ["Bob Odenkirk", "Rhea Seehorn", "Jonathan Banks", "Giancarlo Esposito", "Vince Gilligan"]],
     ["Top Gear", "series", 2002, 45, 1, ["Reality", "Documentary"], ["Jeremy Clarkson", "Richard Hammond", "James May"]],
@@ -48,7 +48,10 @@ var TS_SEED = {
     ["Mr. Robot", "series", 2015, 62560, 1, ["Crime", "Drama", "Mystery"], ["Rami Malek", "Christian Slater", "Carly Chaikin", "Sam Esmail"]],
     ["Trailer Park Boys", "series", 2001, 3796, 1, ["Comedy", "Crime"], ["Robb Wells", "John Paul Tremblay", "Mike Smith", "Mike Clattenburg"]],
     // added later: "I loved that show" -> weighted like a Love it
-    ["The Mandalorian", "series", 2019, 82856, 2, ["Sci-Fi & Fantasy", "Action & Adventure", "Western"], ["Pedro Pascal", "Jon Favreau", "Dave Filoni", "Giancarlo Esposito"]]
+    ["The Mandalorian", "series", 2019, 82856, 2, ["Sci-Fi & Fantasy", "Action & Adventure", "Western"], ["Pedro Pascal", "Jon Favreau", "Dave Filoni", "Giancarlo Esposito"]],
+    // 4.15 (v2): things Nick named - Senna / sports legends, How It's Made, motorsport incl. rally
+    ["Senna", "movies", 2010, 58496, 2, ["Documentary"], ["Ayrton Senna", "Asif Kapadia"]],
+    ["Formula 1: Drive to Survive", "series", 2019, 0, 1, ["Documentary"], []]
   ],
   // extra people (on top of those listed with the titles)
   people: { "David Fincher": 2, "Michael Mann": 2, "Joel Coen": 2, "Ethan Coen": 2, "Martin Scorsese": 2, "Quentin Tarantino": 2, "Wes Anderson": 2,
@@ -58,12 +61,23 @@ var TS_SEED = {
     "Bill Murray": 1.5, "Javier Bardem": 1, "Scarlett Johansson": 1, "Bryan Cranston": 2, "Aaron Paul": 1.5, "Bob Odenkirk": 2, "Rami Malek": 1.5, "Pedro Pascal": 2.5 },
   // keywords in title / plot / genre text
   kw: [["heist|robbery|bank job|\\bthie(f|ves)\\b|con (man|artist)", 1], ["cartel|narco|drug (lord|dealer|trade)|smuggl|cocaine|kingpin", 1], ["\\bmob\\b|mafia|gangster|organi[sz]ed crime", 1],
-    ["conspirac|cover.?up|government secret|whistleblow", 1], ["hacker|cyber|dystopi|simulation|alien|time travel|parallel (world|universe)", 1], ["star wars|mandalorian|bounty hunter|space western|galax|jedi", 1.5],
+    ["conspirac|cover.?up|government secret|whistleblow", 1], ["hacker|cyber|dystopi|simulation|alien|time travel|parallel (world|universe)", 1], ["star wars|mandalorian|bounty hunter|space western|galax|jedi|boba fett|andor|firefly|serenity", 2],
     ["stoner|psychedelic|\\blsd\\b|hallucinat", 0.8], ["mockumentary|satir|dark comedy|black comedy", 1], ["top gear|grand tour|\\bcars?\\b|motor|racing|rally|garage|mechanic|horsepower", 0.8],
     ["how it'?s made|engineering|factory|megastructure|how .{1,20} works", 0.8], ["9\\/11|september 11|twin towers|world trade center|al.?qaeda|war on terror", 1.2],
-    ["politic|election|president|white house|congress|parliament|democracy|propaganda", 0.8], ["science|scientist|physics|cosmos|universe|space|nasa", 0.7], ["documentar|docu.?series", 0.6]],
+    ["politic|election|president|white house|congress|parliament|democracy|propaganda", 1], ["science|scientist|physics|cosmos|universe|space|nasa", 0.7], ["documentar|docu.?series", 0.8],
+    // 4.15 (v2)
+    ["rally|\\bwrc\\b|dakar|formula (1|one)|\\bf1\\b|grand prix|motogp|le mans|nascar|indycar|motorsport|isle of man tt|superbike|senna|schumacher|lauda|mclaren|ferrari", 1.4],
+    ["mountain bik|\\bmtb\\b|downhill|rampage|freeride|enduro|\\bbmx\\b|red bull|extreme sport|free solo|climb", 1.2],
+    ["cold war|world war|wwii|vietnam|chernobyl|apollo|moon landing|iraq war|afghanistan|modern history|watergate|kennedy|nixon|ground zero", 1],
+    ["sports? (legend|documentar)|the last dance|30 for 30|untold|biopic|champion|olympi", 0.8],
+    ["heist|robbery|cartel|mafia|gangster", 0.4],
+    // he dislikes Quebec / French-Canadian content (also hidden by the Quebec filter when it is on)
+    ["qu[e\\u00e9]bec|qu[e\\u00e9]b[e\\u00e9]cois|montr[e\\u00e9]al|french.canadian|\\bvfq\\b|\\(qc\\)|radio.canada|t[e\\u00e9]l[e\\u00e9].qu[e\\u00e9]bec", -4]],
   // theme preferences for the daily themed rows (themes.js)
-  th: { crime: 1, cult: 1, scifi: 0.9, darkcom: 0.9, docthink: 0.9, polit: 0.8, cars: 0.7, space: 0.9, stoner: 0.6, canuck: 0.7, how: 0.7, prestige: 0.9 }
+  th: { crime: 1, cult: 1, scifi: 0.9, darkcom: 0.9, docthink: 1.1, polit: 1, cars: 0.9, space: 1.2, stoner: 0.6, canuck: 0.7, how: 1, prestige: 1,
+    motor: 1.3, mtb: 1.1, sportsleg: 1.2, history: 1.1 },
+  // 4.15: prestige collections (prestige.js) Nick leans to
+  pr: { m_doc: 1.4, m_bp: 1, m_imdb: 1.1, m_palme: 0.6, m_critics: 0.8, m_modern: 0.9, s_imdb: 1.1, s_emmyd: 1.1, s_great: 1, s_globe: 0.8 }
 };
 function tsNorm(s) { return String(s || "").toLowerCase().replace(/^(the|a|an)\s+/, "").replace(/&/g, "and").replace(/[^a-z0-9]+/g, ""); }
 function tsPerson(s) { return String(s || "").toLowerCase().replace(/\(.*?\)/g, "").replace(/[^a-z\u00c0-\u024f]+/g, " ").trim(); }
@@ -83,6 +97,7 @@ function tsApplySeed() {
   });
   for (var p2 in S.people) mx(tp.pp, tsPerson(p2), S.people[p2]);
   for (var h in S.th) mx(tp.th, h, S.th[h]);
+  tp.pr = tp.pr || {}; for (var h2 in (S.pr || {})) mx(tp.pr, h2, S.pr[h2]);
   tp.kw = S.kw.slice(); tp.seed = S.id; tp.v = TS_VER; tp.ts = Date.now();
   PD.tp = tp; TSC.v = null; savePD(); return true;
 }
