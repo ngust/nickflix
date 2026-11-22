@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NickFlix: run the whole Playwright suite against tools/mock.py (4.15). Usage: tests/run_all.sh [outdir]
+# NickFlix: run the whole Playwright suite against tools/mock.py (4.16). Usage: tests/run_all.sh [outdir]
 # Needs python3 + playwright + Chrome (CHROME=/path, default /usr/bin/google-chrome). Logs go to $OUT/<test>.log.
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; OUT="${1:-/tmp/nf_runall}"; mkdir -p "$OUT"
@@ -19,5 +19,6 @@ for t in tall tav tcoll tnas tsc tsl tpb t410 t411 t413; do run $t; done
 startmock "$OUT/dist412/app"; rm -rf /tmp/bk2; (cd "$ROOT" && NF_PORT=9932 NF_BACKUP_DIR=/tmp/bk2 python3 proxy/nfproxy.py >"$OUT/proxy.log" 2>&1 &); sleep 1.5
 run t412
 if [ -f "$ROOT/tests/t414.py" ]; then python3 "$ROOT/tests/t414.py" --fixtures /tmp/nf_fx414 --app "$OUT/dist/app" >/dev/null; startmock "$OUT/dist/app" "/tmp/nf_fx414"; run t414; [ -f "$ROOT/tests/t415.py" ] && run t415; fi
+if [ -f "$ROOT/tests/t416.py" ]; then python3 "$ROOT/tests/t416.py" --fixtures /tmp/nf_fx416 >/dev/null; startmock "$OUT/dist/app" "/tmp/nf_fx416"; run t416; fi
 stopmock
 printf '%s\n' "${res[@]}" | tee "$OUT/summary.txt"

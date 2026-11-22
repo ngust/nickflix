@@ -14,7 +14,8 @@ function modeOf(view) { return PD.st.mode[view] === "all" ? "all" : "curated"; }
 function specsFor(view) {
   if (view === "live") return V.page ? pageSpecs(V.page) : hubSpecs();
   if (view === "mylist") return myListRows();
-  return modeOf(view) === "all" ? allRows(view) : curatedRows(view);
+  var m = modeOf(view);   // 4.16: curated | all (Categories, trimmed) | every (Everything)
+  return m === "curated" ? curatedRows(view) : allRows(view, m === "every");
 }
 function myListRows() {
   var rows = [];
@@ -185,6 +186,7 @@ function startLoad(row, gen) {
     active--; row.loading = false;
     if (gen !== V.gen) { ensureRows(); return; }
     row.items = (items || []).filter(itemOK);   // adult / Quebec gate for every row
+    if (typeof qRowFilter === "function") row.items = qRowFilter(row.spec, row.items);   // 4.16 quality floor + clean-up
     if (!row.items.length) removeRow(row);
     else {
       row.msg.style.display = "none";

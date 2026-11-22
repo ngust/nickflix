@@ -160,6 +160,7 @@ function stContent(inner, ln) {
   inner.appendChild(ce("div", "s-sec", "Hide content"));
   stRow(inner, ln, { key: "tog:adult", ic: "\uD83D\uDD1E", t: "Adult content (18+)", d: "Off hides every adult channel, category, movie and search result for this profile", get: function () { return !!PD.st.adult; }, set: function (v) { PD.st.adult = v; } });
   stRow(inner, ln, { key: "tog:qc", ic: "\u269C\uFE0F", t: "Hide Quebec / French-Canadian content", d: "Removes TVA, Noovo, RDS, ICI Radio-Canada, T\u00e9l\u00e9-Qu\u00e9bec, Super \u00c9cran\u2026 from TV, Movies, Shows, search and sports", get: function () { return qcHidden(); }, set: function (v) { PD.st.hideQC = v; } });
+  if (typeof stContent416 === "function") stContent416(inner, ln);   // 4.16 Indian / Kids / quality floor / trim
 }
 function stTV(inner, ln) {
   var lc = 0, lt = 0; cats.live.forEach(function (c) { lt++; if (catVisibleLive(c)) lc++; });
@@ -199,7 +200,7 @@ function stApp(inner, ln) {
     r._armed = false; bkRestoreFile(function (ok, msg) { toast(msg, 4000); if (ok) setTimeout(function () { location.reload(); }, 1800); }); } });
   if (!BK.remote) bkFetch(function () { if (OV.top() === ST && ST.cat === "app" && !ST.page) renderSettings("\u0000"); });
   inner.appendChild(ce("div", "s-sec", "About"));
-  inner.appendChild(ce("div", "s-note", "NickFlix 4.15  \u00b7  " + AVATARS + " avatars  \u00b7  Settings per profile: " + PF.name));
+  inner.appendChild(ce("div", "s-note", "NickFlix 4.16  \u00b7  " + AVATARS + " avatars  \u00b7  Settings per profile: " + PF.name));
 }
 function liveCodes() {
   var cnt = {}; cats.live.forEach(function (c) { if (!c.adult) cnt[c.code] = (cnt[c.code] || 0) + 1; }); return cnt;
@@ -344,7 +345,8 @@ function stVod(inner, ln) {
   inner.appendChild(ce("div", "s-sec", "Start Movies & Shows in"));
   var ml = ce("div", "s-line"), mit = [];
   [["movies", "Movies"], ["series", "Shows"]].forEach(function (x) {
-    var c = chip(x[1] + ": " + (PD.st.mode[x[0]] === "all" ? "All categories" : "Curated"), "", true, function () { PD.st.mode[x[0]] = PD.st.mode[x[0]] === "all" ? "curated" : "all"; ST.dirty = true; savePD(); renderSettings(c._key); }, "act");
+    var MN = { curated: "Curated", all: "Categories", every: "Everything" }, NX = { curated: "all", all: "every", every: "curated" }, cm = MN[PD.st.mode[x[0]]] ? PD.st.mode[x[0]] : "curated";
+    var c = chip(x[1] + ": " + MN[cm], "", true, function () { PD.st.mode[x[0]] = NX[cm]; ST.dirty = true; savePD(); renderSettings(c._key); }, "act");   // 4.16: 3 modes
     c._key = "mode:" + x[0]; ml.appendChild(c); mit.push(c);
   });
   inner.appendChild(ml); lnAdd(ln, ml, mit);

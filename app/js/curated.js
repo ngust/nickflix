@@ -40,7 +40,7 @@ function poolFor(type, en) {
 }
 var poolMem = {};
 function loadPool(type, pc) {
-  var sig = type + ":" + pc.map(function (c) { return c.id; }).join(",");
+  var sig = type + ":" + pc.map(function (c) { return c.id; }).join(",") + (typeof qSig === "function" ? ":" + qSig() : "");
   if (poolMem[sig]) return poolMem[sig];
   var cached = lsGet("nf_pool_" + type, null);
   var p;
@@ -53,7 +53,7 @@ function loadPool(type, pc) {
         if (!itemOK(it)) return;
         var k = normTitle(it), o = by[k];
         if (!o) { by[k] = it; out.push(it); }
-        else if (!o.ic && it.ic) { by[k] = it; out[out.indexOf(o)] = it; }
+        else if (typeof qBetter === "function" ? qBetter(o, it) : (!o.ic && it.ic)) { by[k] = it; out[out.indexOf(o)] = it; }   // 4.16 keep the best copy
       }); });
       out.sort(function (a, b) { return (b.a || 0) - (a.a || 0); });
       // 4.14: keep the first 4 cast names + director (people affinity, taste.js); still no plot
@@ -83,7 +83,7 @@ function curatedRows(type) {
   function dedupe(items, max) {
     var out = [], noPic = [], seen = {}, ok = adultOk();
     for (var i = 0; i < items.length && out.length < max; i++) {
-      var it = items[i]; if (!itemOK(it)) continue;
+      var it = items[i]; if (!itemOK(it) || (typeof qOK === "function" && !qOK(it))) continue;   // 4.16 quality floor
       var k = normTitle(it); if (used[k] || seen[k]) continue; seen[k] = 1;
       if (it.ic) out.push(it); else if (noPic.length < max) noPic.push(it);
     }
@@ -110,7 +110,8 @@ function curatedRows(type) {
         return { it: it, s: s * 1.5 + (ratingOK(it) ? it.r : 5) + Math.max(0, 3 - age / 60) + (it.ic ? 1 : 0) + tb };
       });
       sc.sort(function (a, b) { return b.s - a.s; });
-      return sc.map(function (x) { return x.it; });
+      var l = sc.map(function (x) { return x.it; });
+      return typeof qShape === "function" ? qShape(l.filter(function (it) { return typeof qOK !== "function" || qOK(it); }), "top", 30) : l;   // 4.16 diversity + exploration
     });
   }, 30, true) });
   var last = null, an = typeof whAnchor === "function" ? whAnchor(type === "movies" ? "movie" : "show") : null, fin = typeof whFinished === "function" ? whFinished() : {};
@@ -148,6 +149,7 @@ function curatedRows(type) {
   GEN.sort(function (a, b) { return (aff[b] || 0) - (aff[a] || 0); });
   GEN.forEach(function (g) {
     if (PD.st.v.genresOff[g]) return;
+    if (g === "Kids & Family" && typeof kidsOn === "function" && !kidsOn()) return;   // 4.16 Kids setting
     var cl = en.filter(function (c) { return c.genres.indexOf(g) >= 0; }).slice(0, 2);
     if (type === "series") {
       // shows also carry a per-title genre field: use the pool too

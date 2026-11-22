@@ -105,7 +105,7 @@ function thItems(t, type) {
     var aff = affinity(), by = {}, c = [];
     ls.forEach(function (l, li) {
       (l || []).forEach(function (it) {
-        if (!itemOK(it) || seen[itemKey(it)] || rtDisliked(it)) return;
+        if (!itemOK(it) || seen[itemKey(it)] || rtDisliked(it) || (typeof qOK === "function" && !qOK(it))) return;   // 4.16 quality floor
         var m = thMatch(t, it); if (li > 0 && src[li - 1] && t.src && t.src.test(src[li - 1].up)) m += 0.6;
         if (m < 1.2) return;
         var k = normTitle(it); if (by[k] && (by[k].it.ic || !it.ic)) return;

@@ -35,6 +35,8 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
 - **v4.11** Settings redesign (category list + detail pane), 235 avatars in 20 groups with a categorized picker, a daily "Today's picks" row per section, and a 🎰 Surprise me slot machine (optional).
 - **v4.12–4.13** Profile backup (TV file + NAS) with auto-restore; audio language selection.
 - **v4.14** Taste seed for the Nick profile, cast/director affinity, 👎 / 👍 / 👍👍 ratings (details page + player), rotating themed rows and a daily mix, News (Canada / US / World) on the TV hub.
+- **v4.15** 🚫 Never show, no NAS titles on Movies / Shows, daily prestige collections, taste seed v2.
+- **v4.16** Quality floor, dedupe and junk clean-up, Curated / Categories / 🌐 Everything modes, category trim, Indian-content and Kids-content filters, per-profile vibe rows, implicit signals and diversity in the algorithm.
 
 ## Architecture
 `app/` is the Tizen web app (load order is the `<script>` order in `index.html`):
@@ -64,6 +66,7 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
 | `js/taste.js` | 4.14 taste seed (Nick), people (cast/director) affinity, ratings store, `tasteBoost` / daily `tsMix` |
 | `js/rate.js` | 4.14 rating buttons on the details page and the player Rate panel (▼ / GREEN) |
 | `js/themes.js` | 4.14 rotating themed rows, Because you loved, More with <person>, daily row shuffle |
+| `js/quality.js` | 4.16 quality floor, dedupe, Indian / kids filters, Everything mode, category trim, vibe rows, implicit signals + diversity |
 | `js/news.js` | 4.14 News tiles + Live news now on the TV hub, Canada / US / World news pages |
 
 Tools: `tools/build.py` (package), `tools/deploy.ps1` (sign + install with Tizen CLI), `tools/mock.py`
